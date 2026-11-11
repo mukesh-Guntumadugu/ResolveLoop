@@ -7,3 +7,5 @@ __pycache__/
 .pytest_cache/
 evidence/*.xml
 knowledge/pdf/*.pdf.tmp
+*.db-shm
+*.db-wal
