@@ -16,7 +16,7 @@ per-user export permission. All data, accounts and contact details are synthetic
 | Path | What |
 |------|------|
 | `server/` | FastAPI orchestrator: `mock_business` (synthetic accounts + allowlisted tools), `trace` (action events, audit), `learning` (deterministic trace → playbook extractor), `review` (approval state machine, versioning), `resolve` (paraphrase matcher, gated executor, verifier) |
-| `web/` | Simulated support desk, reviewer, customer simulator and audit UI (static, served at `/ui/`) |
+| `web/` | Simulated support desk (dashboard with live metrics, customer simulator, human desk, reviewer, audit) and the Orbit help center page the eGain widget sits on (static, served at `/ui/`) |
 | `tests/` | pytest: E2E-01…06, safety/negative cases, paraphrase set |
 | `knowledge/` | The fictional help articles the eGain agent is trained on (Markdown + generated PDFs) |
 | `egain/` | Workflow blueprints for the eGain console (pre-chat, escalation, process tools, action) and reviewer instructions |
@@ -55,7 +55,8 @@ Playbook `REVIEW_PENDING → APPROVED → RETIRED` (`REJECTED` terminal); Execut
 - The extractor is deterministic (`deterministic-v1`). It generalizes nothing on its own: prerequisites are the observed state, and a reviewer widens them (e.g. role analyst → analyst or admin) through a new version.
 - Paraphrase matching is concept-overlap over reviewer-editable examples, not embeddings. Measured on the bundled set: see the test output.
 - Actions are captured only at the mock tool boundary of one simulated desk. No desktop or screen observation.
-- The eGain integration depth depends on what the hackathon tenant exposes; `egain/README.md` records what was actually observed working.
+- The eGain integration depth depends on what the hackathon tenant exposes; `egain/OBSERVED.md` records what was actually observed working: three Custom API actions (resolve export issue, check account status, open ticket), three process/escalation workflows that call the API node (export troubleshooter, subscription check, escalation with ticket and callback), branded widget.
+- Tickets and callbacks are stored in ResolveLoop only; no email or telephony is sent (the eGain Send Email and Trigger Call connectors are configured with fictional contacts).
 - Prototype security only: a shared API key, synthetic identities, no SSO. The eGain Custom API action lets the
   agent fill `account_id` from the conversation, so a customer can name another synthetic account; ResolveLoop only
   enforces the owner check when `principal_id` is supplied (the process workflow uses the pre-chat `accountId`).
