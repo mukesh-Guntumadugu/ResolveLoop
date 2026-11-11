@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -22,6 +23,8 @@ from .review.registry import new_version, register_candidate, transition, valida
 from .trace.events import audit, record_event, trace_for_case
 
 app = FastAPI(title="ResolveLoop", version="0.1.0", root_path=config.ROOT_PATH)
+# The eGain console and its published widget run on other origins; the API is key-protected, so open CORS is fine.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["*"])
 store = Store(config.DB_PATH)
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
 KB_DIR = os.path.join(os.path.dirname(__file__), "..", "knowledge", "pdf")
