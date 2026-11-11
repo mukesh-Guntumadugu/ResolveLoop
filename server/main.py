@@ -313,6 +313,14 @@ def edit(pb_id: str, body: Edit, c: Ctx = Depends(ctx)):
 
 
 # ---------- resolve (called by the eGain action or the customer simulator) ----------
+@app.get("/v1/resolve")
+def resolve_get(account_id: str, utterance: str, confirm: bool = False, idempotency_key: Optional[str] = None,
+                channel: str = "egain", c: Ctx = Depends(ctx)):
+    """GET form of /v1/resolve for action builders that cannot send a JSON body. Same semantics."""
+    return resolve(ResolveIn(account_id=account_id, utterance=utterance, confirm=confirm,
+                             idempotency_key=idempotency_key, channel=channel), c)
+
+
 @app.post("/v1/resolve")
 def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
     require_key(c)
