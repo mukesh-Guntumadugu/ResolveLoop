@@ -24,6 +24,7 @@ from .trace.events import audit, record_event, trace_for_case
 app = FastAPI(title="ResolveLoop", version="0.1.0", root_path=config.ROOT_PATH)
 store = Store(config.DB_PATH)
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
+KB_DIR = os.path.join(os.path.dirname(__file__), "..", "knowledge", "pdf")
 
 
 # ---------- request context ----------
@@ -391,6 +392,8 @@ def summary(c: Ctx = Depends(ctx)):
 # ---------- static UI ----------
 if os.path.isdir(WEB_DIR):
     app.mount("/ui", StaticFiles(directory=WEB_DIR, html=True), name="ui")
+if os.path.isdir(KB_DIR):
+    app.mount("/kb", StaticFiles(directory=KB_DIR), name="kb")
 
 
 @app.get("/")
