@@ -11,5 +11,5 @@ Fill in while building; the submission must only claim what is recorded here.
 | Pre-chat workflow attached | | |
 | Escalation workflow: Direct + Knowledge Gap, two options | | |
 | Process workflow attached to the export intent | | |
-| Actions: outbound HTTP call to ResolveLoop (Path A) | | |
-| Fallback used (Path B) | | |
+| Actions: outbound HTTP call to ResolveLoop (Path A) | **yes, observed** | Agent → Enable Actions (toggle) → Custom APIs → Create Custom API. REST, POST, URL, static headers (X-API-Key, X-Tenant-ID), raw JSON body with {{account_id}}, {{utterance}}, {{confirm}} auto-extracted as String variables with descriptions, built-in Test Request. Test on 2026-11-11: HTTP 200 in 914 ms, response NO_PLAYBOOK / outcome escalate with two contact options (no playbook approved yet). Action name: "ResolveLoop resolve export issue". |
+| Fallback used (Path B) | no | Not needed; Path A works. The process workflow still carries a Statement fallback for judges without the action. |
