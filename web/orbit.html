@@ -1,28 +1,333 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Orbit Reports Help Center (fictional demo)</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{margin:0;font:17px/1.55 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1b2430;background:#f6f8fb}
-header{background:#172554;color:#fff;padding:28px 6vw}header h1{margin:0;font-size:28px}header p{margin:6px 0 0;opacity:.85}
-main{max-width:900px;margin:0 auto;padding:32px 6vw}
-.note{background:#fff7e6;border:1px solid #f0c36d;padding:10px 14px;border-radius:8px;font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:24px}
-.card{background:#fff;border:1px solid #dfe5ee;border-radius:12px;padding:18px}.card h3{margin:0 0 6px;font-size:18px}
-.card a{color:#1d4ed8;text-decoration:none}.card p{margin:0;color:#4b5563;font-size:15px}
-footer{padding:24px 6vw;color:#6b7280;font-size:13px}
-</style></head>
+<title>Orbit Reports Help Center · Orbit Analytics</title>
+<meta name="description" content="Help articles, migration status and support contacts for Orbit Reports by Orbit Analytics (fictional demo).">
+<meta name="theme-color" content="#172554">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23172554'/%3E%3Ccircle cx='16' cy='16' r='5.5' fill='%2360a5fa'/%3E%3Cellipse cx='16' cy='16' rx='12' ry='4.5' fill='none' stroke='%23f59e0b' stroke-width='1.8' transform='rotate(-25 16 16)'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="orbit.css">
+</head>
 <body>
-<header><h1>Orbit Reports Help Center</h1><p>Orbit Analytics · support for dashboards, exports and the Orbit Cloud 2 migration</p></header>
-<main>
-<div class="note">Fictional company and content created for the eGain AI Agent hackathon. Demo accounts: C001, C002, C003. No real customer data.</div>
-<div class="grid">
-<div class="card"><h3><a href="../kb/01-exporting-reports.pdf">Exporting reports</a></h3><p>CSV and PDF exports, limits, scheduled exports, who can export, error codes EXP-100/200/300.</p></div>
-<div class="card"><h3><a href="../kb/02-orbit-cloud-2-migration.pdf">Orbit Cloud 2 migration</a></h3><p>What changed, how to tell if you are migrated, known differences.</p></div>
-<div class="card"><h3><a href="../kb/03-roles-and-permissions.pdf">Roles and permissions</a></h3><p>Viewer, analyst, admin, and the per-user Export permission.</p></div>
-<div class="card"><h3><a href="../kb/04-plans-and-subscription-status.pdf">Plans and subscription status</a></h3><p>Starter, Team, Business; what an inactive subscription means.</p></div>
-<div class="card"><h3><a href="../kb/05-getting-help.pdf">Getting help</a></h3><p>Email, phone, callback, hours, what to include in a request.</p></div>
-</div>
-<p style="margin-top:28px">Need help now? Use the chat assistant in the corner of this page. It answers from these articles, can walk you through export troubleshooting, and connects you with a specialist when needed.</p>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="container nav-row">
+    <a class="brand" href="orbit.html" aria-label="Orbit Reports home">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+        <rect width="40" height="40" rx="10" fill="#172554"/>
+        <circle cx="20" cy="20" r="7" fill="#60a5fa"/>
+        <ellipse cx="20" cy="20" rx="15" ry="5.5" fill="none" stroke="#f59e0b" stroke-width="2.2" transform="rotate(-25 20 20)"/>
+        <circle cx="32.5" cy="13.2" r="2.4" fill="#fbbf24"/>
+      </svg>
+      <span class="wordmark">Orbit<span class="wordmark-sub">Reports</span></span>
+    </a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu">
+      <svg class="icon-menu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg class="icon-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
+    <nav id="site-nav" class="site-nav" aria-label="Primary">
+      <ul>
+        <li><a href="orbit.html">Orbit Reports</a></li>
+        <li><a href="#main" aria-current="page">Help Center</a></li>
+        <li><a href="#status">Status</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <a class="btn btn-ghost nav-cta" href="#contact">Sign in</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-bg" aria-hidden="true">
+      <svg viewBox="0 0 1440 520" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <radialGradient id="g1" cx="80%" cy="20%" r="60%">
+            <stop offset="0" stop-color="#2563eb" stop-opacity=".55"/>
+            <stop offset="1" stop-color="#172554" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="g2" cx="10%" cy="90%" r="55%">
+            <stop offset="0" stop-color="#1d4ed8" stop-opacity=".45"/>
+            <stop offset="1" stop-color="#172554" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect width="1440" height="520" fill="url(#g1)"/>
+        <rect width="1440" height="520" fill="url(#g2)"/>
+        <g fill="none" stroke="#93c5fd" stroke-opacity=".18" stroke-width="1.5">
+          <ellipse cx="1180" cy="130" rx="260" ry="90" transform="rotate(-18 1180 130)"/>
+          <ellipse cx="1180" cy="130" rx="340" ry="120" transform="rotate(-18 1180 130)"/>
+          <ellipse cx="1180" cy="130" rx="430" ry="150" transform="rotate(-18 1180 130)"/>
+        </g>
+        <circle cx="1180" cy="130" r="26" fill="#60a5fa" fill-opacity=".35"/>
+        <circle cx="1392" cy="52" r="5" fill="#fbbf24" fill-opacity=".9"/>
+        <circle cx="900" cy="245" r="4" fill="#93c5fd" fill-opacity=".7"/>
+      </svg>
+    </div>
+    <div class="container hero-inner">
+      <p class="eyebrow">Orbit Analytics · Help Center</p>
+      <h1 id="hero-title">How can we help?</h1>
+      <p class="hero-sub">Guides for dashboards, exports, roles and billing, plus everything you need to know about the Orbit Cloud 2 migration.</p>
+
+      <form class="search" role="search" aria-label="Search help articles" autocomplete="off">
+        <label class="sr-only" for="q">Search help articles</label>
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" name="q" placeholder="Search help articles…">
+        <button class="btn btn-primary" type="submit">Search</button>
+        <p class="search-hint" aria-live="polite"></p>
+      </form>
+
+      <ul class="chips" aria-label="Popular searches">
+        <li><button type="button" class="chip" data-q="export stuck after migration">Export stuck after migration</button></li>
+        <li><button type="button" class="chip" data-q="EXP-100">EXP-100</button></li>
+        <li><button type="button" class="chip" data-q="who can export">Who can export?</button></li>
+        <li><button type="button" class="chip" data-q="reactivate subscription">Reactivate subscription</button></li>
+      </ul>
+
+      <div class="callout" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 5.6L20 9l-4.3 3.9L17 19l-5-2.9L7 19l1.3-6.1L4 9l5.6-1.4z" fill="#fbbf24"/></svg>
+        <p><strong>New:</strong> the assistant can apply approved fixes to your account after you confirm.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fictional notice -->
+  <div class="container">
+    <aside class="notice" aria-label="Demo notice">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v5M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <p><strong>Fictional content.</strong> Orbit Analytics and Orbit Reports were invented for the eGain AI Agent hackathon. Demo accounts: <code>C001</code>, <code>C002</code>, <code>C003</code>. No real customer data is involved.</p>
+    </aside>
+  </div>
+
+  <!-- Popular -->
+  <section class="section popular" aria-labelledby="popular-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="popular-title">Popular right now</h2>
+        <span class="pill pill-warm">Trending this week</span>
+      </div>
+      <ol class="popular-grid">
+        <li class="popular-item">
+          <span class="rank">1</span>
+          <div>
+            <a href="../kb/02-orbit-cloud-2-migration.pdf">Exports after the Orbit Cloud 2 migration</a>
+            <p>Export spinning or CSV never downloading since the move? Here is what changed and when to contact us.</p>
+          </div>
+        </li>
+        <li class="popular-item">
+          <span class="rank">2</span>
+          <div>
+            <a href="../kb/01-exporting-reports.pdf">What error codes EXP-100, EXP-200 and EXP-300 mean</a>
+            <p>Permission, subscription and size limits explained, with the next step for each.</p>
+          </div>
+        </li>
+        <li class="popular-item">
+          <span class="rank">3</span>
+          <div>
+            <a href="../kb/03-roles-and-permissions.pdf">Enabling the Export permission for an analyst</a>
+            <p>Six steps for workspace admins under Workspace settings › Members.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Articles -->
+  <section class="section" aria-labelledby="articles-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="articles-title">Browse by topic</h2>
+        <p class="section-sub">Five guides cover everything in Orbit Reports. Each opens as a PDF.</p>
+      </div>
+      <div class="cards">
+        <a class="card" href="../kb/01-exporting-reports.pdf">
+          <span class="card-icon ic-blue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 17v2a1 1 0 001 1h12a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Exporting reports</h3>
+          <p>CSV and PDF exports, who can export, size limits, scheduled exports and the EXP error codes.</p>
+          <span class="card-meta">9 min read · PDF</span>
+        </a>
+        <a class="card card-featured" href="../kb/02-orbit-cloud-2-migration.pdf">
+          <span class="card-icon ic-warm"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16a4 4 0 010-8 5.5 5.5 0 0110.6-1.2A4.5 4.5 0 0118 16H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 19v-6M9.5 15.5L12 13l2.5 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Orbit Cloud 2 migration</h3>
+          <p>Timeline, how to tell if your workspace is migrated, what stays the same and the known differences.</p>
+          <span class="card-meta">7 min read · PDF</span>
+        </a>
+        <a class="card" href="../kb/03-roles-and-permissions.pdf">
+          <span class="card-icon ic-green"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Roles and permissions</h3>
+          <p>Viewer, Analyst and Admin, and the per-user Export permission that sits on top of the role.</p>
+          <span class="card-meta">6 min read · PDF</span>
+        </a>
+        <a class="card" href="../kb/04-plans-and-subscription-status.pdf">
+          <span class="card-icon ic-purple"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M7 15h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Plans and subscription status</h3>
+          <p>Starter, Team and Business compared, what an inactive subscription means and how to reactivate.</p>
+          <span class="card-meta">6 min read · PDF</span>
+        </a>
+        <a class="card" href="../kb/05-getting-help.pdf">
+          <span class="card-icon ic-navy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H9l-5 4V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 9h8M8 12.5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <h3>Getting help</h3>
+          <p>Chat, email, phone and callback, support hours, response times and what to include in a request.</p>
+          <span class="card-meta">5 min read · PDF</span>
+        </a>
+        <div class="card card-assist" aria-labelledby="assist-title">
+          <span class="card-icon ic-blue-solid"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 017 7v1h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.3A7 7 0 0112 20a7 7 0 01-6.7-4H4a1 1 0 01-1-1v-3a1 1 0 011-1h1v-1a7 7 0 017-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="9.5" cy="12" r="1.2" fill="currentColor"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor"/></svg></span>
+          <h3 id="assist-title">Ask the assistant</h3>
+          <p>Use the help chat in the corner of this page. It answers from these articles and hands over to a specialist when needed.</p>
+          <span class="card-meta">Available 24/7</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Status -->
+  <section id="status" class="section section-alt" aria-labelledby="status-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="status-title">Migration status</h2>
+        <p class="section-sub">Every workspace now runs on Orbit Cloud 2. The Legacy Workspace platform was switched off on 31 October 2026.</p>
+      </div>
+
+      <div class="status-panel">
+        <div class="status-row" role="status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <strong>All systems operational</strong>
+          <span class="status-meta">Reports · Exports · Scheduled exports · Sign-in</span>
+          <span class="status-time">Updated 11 Nov 2026, 09:00 PT</span>
+        </div>
+
+        <ol class="timeline">
+          <li class="tl-item is-done">
+            <span class="tl-marker" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div class="tl-body">
+              <span class="tl-dates">January – March 2026</span>
+              <h3>Early access</h3>
+              <p>Workspaces that opted in were migrated first.</p>
+            </div>
+          </li>
+          <li class="tl-item is-done">
+            <span class="tl-marker" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div class="tl-body">
+              <span class="tl-dates">April – September 2026</span>
+              <h3>General migration</h3>
+              <p>All remaining Starter, Team and Business workspaces moved in weekly batches, with seven days' notice to admins.</p>
+            </div>
+          </li>
+          <li class="tl-item is-done is-last">
+            <span class="tl-marker" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div class="tl-body">
+              <span class="tl-dates">31 October 2026</span>
+              <h3>Legacy shutdown</h3>
+              <p>The Legacy Workspace platform was switched off. Every active workspace now runs on Orbit Cloud 2.</p>
+            </div>
+          </li>
+        </ol>
+
+        <p class="status-note">Per-user permission flags were re-evaluated during migration. If a feature behaves differently than it did before, contact support with your account ID so we can review your migration record.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Error codes -->
+  <section class="section" aria-labelledby="errors-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="errors-title">Error codes</h2>
+        <p class="section-sub">Quick reference for the messages the Export dialog can show.</p>
+      </div>
+      <div class="table-wrap">
+        <table class="codes">
+          <thead>
+            <tr><th scope="col">Code</th><th scope="col">Message</th><th scope="col">What it means</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code class="code-tag">EXP-100</code></th>
+              <td>No export permission</td>
+              <td>Your user does not have the Export permission enabled, or your role is Viewer. Ask a workspace admin to review your role and permission.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code class="code-tag">EXP-200</code></th>
+              <td>Subscription inactive</td>
+              <td>Your workspace subscription is inactive and the workspace is read-only. A billing contact needs to reactivate it.</td>
+            </tr>
+            <tr>
+              <th scope="row"><code class="code-tag">EXP-300</code></th>
+              <td>Report too large</td>
+              <td>The export exceeds the row, page or size limit. Narrow the report with a filter or split it, then try again.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-foot">Export hangs with no code at all? That is different from the three above. <a href="../kb/01-exporting-reports.pdf">Read the export guide</a> or contact support with your account ID and the report name.</p>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="section section-contact" aria-labelledby="contact-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="contact-title">Contact support</h2>
+        <p class="section-sub">Specialists are available Monday to Friday, 8 am to 6 pm Pacific. The assistant in the help chat is available around the clock.</p>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <span class="contact-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 7l9 6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+          <h3>Email</h3>
+          <p><a href="mailto:support@orbit-analytics.example">support@orbit-analytics.example</a></p>
+          <p class="muted">Best for detailed problems, screenshots and billing questions.</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+          <h3>Phone</h3>
+          <p><a href="tel:+15550100199">(555) 010-0199</a></p>
+          <p class="muted">Urgent issues during support hours. Team and Business plans.</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 3v4h-4M6 21v-4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Callback</h3>
+          <p>Request one from the help chat when you escalate.</p>
+          <p class="muted">Confirm a number and a time window; a specialist calls you.</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3>Hours</h3>
+          <p>Monday – Friday, 8 am – 6 pm Pacific</p>
+          <p class="muted">Email tickets are picked up during the next support hours.</p>
+        </div>
+      </div>
+      <p class="contact-tip">Have your <strong>account ID</strong> ready (for example <code>C001</code>), the report name and any error code. We never ask for your password.</p>
+    </div>
+  </section>
+
 </main>
-<footer>Orbit Analytics is not a real company. Built for the eGain hackathon, November 2026. <a href="./">Support desk (internal simulation)</a></footer>
-</body></html>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <svg class="logo logo-sm" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+        <rect width="40" height="40" rx="10" fill="#1e3a8a"/>
+        <circle cx="20" cy="20" r="7" fill="#60a5fa"/>
+        <ellipse cx="20" cy="20" rx="15" ry="5.5" fill="none" stroke="#f59e0b" stroke-width="2.2" transform="rotate(-25 20 20)"/>
+        <circle cx="32.5" cy="13.2" r="2.4" fill="#fbbf24"/>
+      </svg>
+      <span>Orbit Analytics</span>
+    </div>
+    <p class="footer-disclaimer">Orbit Analytics is not a real company. This help center, its articles, accounts and contact details were invented for the eGain AI Agent hackathon, November 2026.</p>
+    <ul class="footer-links">
+      <li><a href="#main">Help Center</a></li>
+      <li><a href="#status">Status</a></li>
+      <li><a href="#contact">Contact</a></li>
+      <li><a class="footer-internal" href="./">Support desk (internal simulation)</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script src="orbit.js"></script>
+</body>
+</html>

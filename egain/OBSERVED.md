@@ -30,3 +30,10 @@ Known limitation observed: the Custom API action lets the LLM fill `account_id` 
 | Published demo link, after pre-chat (C002): "Which roles can export reports?" | Grounded answer: Analyst and Admin only with the Export permission flag, Viewer cannot; sources 01-exporting-reports.pdf and 03-roles-and-permissions.pdf | evidence/egain-published-link-grounded-answer.jpg |
 
 Not yet exercised end to end on the published link: the troubleshooter process workflow path (intent → Orbit Export Troubleshooter → API node). The same API node passed its in-editor Test Request, and the Custom API action path resolved C002 in the console test chat.
+
+## Upgrade round (2026-11-11 evening)
+
+| Item | Observed |
+|------|----------|
+| Custom API "Check Orbit account status" | GET …/v1/accounts/{{account_id}}/status with a path parameter (auto-extracted, described). Test: HTTP 200 in 917 ms, C003 → "Subscription inactive… (EXP-200)". |
+| Custom API "Open an Orbit support ticket" | POST …/v1/tickets, body variables account_id, category, summary. Test: HTTP 200 in 552 ms, "Ticket RL-1001 opened. A specialist will reply within 24 hours." |
