@@ -56,7 +56,9 @@ Playbook `REVIEW_PENDING → APPROVED → RETIRED` (`REJECTED` terminal); Execut
 - Paraphrase matching is concept-overlap over reviewer-editable examples, not embeddings. Measured on the bundled set: see the test output.
 - Actions are captured only at the mock tool boundary of one simulated desk. No desktop or screen observation.
 - The eGain integration depth depends on what the hackathon tenant exposes; `egain/README.md` records what was actually observed working.
-- Prototype security only: a shared API key, synthetic identities, no SSO.
+- Prototype security only: a shared API key, synthetic identities, no SSO. The eGain Custom API action lets the
+  agent fill `account_id` from the conversation, so a customer can name another synthetic account; ResolveLoop only
+  enforces the owner check when `principal_id` is supplied (the process workflow uses the pre-chat `accountId`).
 
 ## Disclosure
 

@@ -6,8 +6,8 @@ Form: https://www.egain.com/ai-agent-hackathon-project-submission/ — deadline 
 - Agent name: **Orbit Support Assistant (ResolveLoop)**
 - Industry: Technology
 - Use case (≤150 chars): Turn verified human support fixes into approved AI actions that resolve the next similar customer case.
-- eGain capabilities demonstrated: Knowledge-based answers, Published experience, Pre-chat workflow, Escalation workflow, Process workflow, Actions (tick Actions only if `egain/OBSERVED.md` records it working)
-- Published demo URL: (from Personalize & Publish → Demo Link)
+- eGain capabilities demonstrated: Knowledge-based answers, Published experience, Pre-chat workflow, Escalation workflow, Process workflow, Actions (observed working on 2026-11-11, see `egain/OBSERVED.md`)
+- Published demo URL: https://aidev.egain.cloud/y6ip/system/web/apps/aiagent/demo.html?agentId=8ba71b10-c3ee-4a3f-b507-8fe3a4d5113a&backgroundUrl=https://cdn.aiagent-dev.egain.cloud/TMDEVEB12725755/screenshots/23a971cf-91ed-4c2b-90dc-2c54439ea014.png
 - One-minute video URL: (YouTube, unlisted)
 - Pre-existing templates/code/third-party assets: FastAPI, Uvicorn, Pydantic, httpx, pytest, ReportLab, Python-Markdown (open-source libraries). Generative AI coding tools used. All knowledge content original and fictional.
 
