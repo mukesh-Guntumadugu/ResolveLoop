@@ -87,8 +87,11 @@
 
   // ---------- state ----------
   const state = {
-    tab: 'customer',
+    tab: 'dashboard',
     chat: JSON.parse(sessionStorage.getItem('rl.chat') || '[]'),  // {role:'user'|'bot', text, env, outcome, pending}
+    lastSent: null,      // {account, utterance} of the last customer message, for the Replay chip
+    acctStatusTimer: null,
+    acctStatusFor: null,
     accounts: [],
     cases: [],
     selectedCase: sessionStorage.getItem('rl.case') || null,  // id
@@ -106,23 +109,40 @@
   function initSettings() {
     $('#set-tenant').value = settings.tenant;
     $('#set-key').value = settings.key;
-    $('#set-tenant').addEventListener('change', (e) => { settings.tenant = e.target.value.trim() || 'demo'; refresh(true); });
+    $('#hd-tenant').textContent = settings.tenant;
+    $('#set-tenant').addEventListener('change', (e) => { settings.tenant = e.target.value.trim() || 'demo'; $('#hd-tenant').textContent = settings.tenant; refresh(true); });
     $('#set-key').addEventListener('input', (e) => { settings.key = e.target.value; });
     $('#set-key').addEventListener('change', () => refresh(true));
     $('#settings-form').addEventListener('submit', (e) => { e.preventDefault(); refresh(true); });
   }
 
-  // ---------- tabs ----------
+  // ---------- tabs (sidebar nav + hash routing) ----------
+  const TABS = ['dashboard', 'customer', 'desk', 'reviewer', 'audit'];
+  const TAB_TITLES = {
+    dashboard: ['Dashboard', 'Live metrics for the Orbit Analytics support desk'],
+    customer: ['Customer (simulated)', 'Stand-in for the eGain action call — chat as a synthetic account'],
+    desk: ['Human desk', 'Specialists work cases with allowlisted tools; every action is traced'],
+    reviewer: ['Reviewer', 'Approve, reject, retire or edit learned playbooks before the agent may reuse them'],
+    audit: ['Audit', 'Executions and the append-only audit log for this tenant'],
+  };
   function initTabs() {
-    $$('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    $$('.tab').forEach((b) => b.addEventListener('click', () => { showTab(b.dataset.tab); document.body.classList.remove('sidebar-open'); }));
     const fromHash = location.hash.replace('#', '');
-    if (['customer', 'desk', 'reviewer', 'audit'].includes(fromHash)) state.tab = fromHash;
+    if (TABS.includes(fromHash)) state.tab = fromHash;
+    window.addEventListener('hashchange', () => { const h = location.hash.replace('#', ''); if (TABS.includes(h) && h !== state.tab) showTab(h); });
+    $('#sidebar-toggle').addEventListener('click', (e) => { e.stopPropagation(); document.body.classList.toggle('sidebar-open'); });
+    // The expanded sidebar overlays the content on narrow screens; a click anywhere outside it closes it.
+    document.addEventListener('click', (e) => { if (!e.target.closest('#sidebar')) document.body.classList.remove('sidebar-open'); });
+    $('.brand').addEventListener('click', (e) => { e.preventDefault(); showTab('dashboard'); });
     showTab(state.tab);
   }
   function showTab(name) {
     state.tab = name;
     $$('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.panel').forEach((p) => p.classList.toggle('active', p.id === 'tab-' + name));
+    const t = TAB_TITLES[name] || [name, ''];
+    $('#page-title').textContent = t[0];
+    $('#page-sub').textContent = t[1];
     history.replaceState(null, '', '#' + name);
     refresh(true);
   }
@@ -135,7 +155,8 @@
     sessionStorage.setItem('rl.case', state.selectedCase || '');
     sessionStorage.setItem('rl.pb', state.selectedPb || '');
     try {
-      if (state.tab === 'customer') await refreshCustomer();
+      if (state.tab === 'dashboard') await refreshDashboard();
+      else if (state.tab === 'customer') await refreshCustomer();
       else if (state.tab === 'desk') await refreshDesk();
       else if (state.tab === 'reviewer') await refreshReviewer();
       else if (state.tab === 'audit') await refreshAudit();
@@ -157,7 +178,23 @@
       $('#chat-message').value = '';
       await guarded($('#chat-form button[type=submit]'), () => sendResolve($('#chat-account').value.trim() || 'C002', text, false));
     });
-    $$('.chip').forEach((c) => c.addEventListener('click', () => { $('#chat-message').value = c.dataset.say; $('#chat-message').focus(); }));
+    $$('.chip[data-say]').forEach((c) => c.addEventListener('click', () => { $('#chat-message').value = c.dataset.say; $('#chat-message').focus(); }));
+    // Replay: send the last customer message again (fresh idempotency key, so it is a real new request).
+    $('#chat-replay').addEventListener('click', (e) => guarded(e.currentTarget, async () => {
+      const last = state.lastSent;
+      if (!last) return;
+      $('#chat-account').value = last.account;
+      await sendResolve(last.account, last.utterance, false);
+    }));
+    // Account status line: debounced lookup of v1/accounts/{id}/status while the account field changes.
+    $('#chat-account').addEventListener('input', () => scheduleAccountStatus());
+    $('#chat-account').addEventListener('change', () => { scheduleAccountStatus(0); refreshAccountsMini(); });
+    // Recover the replay target from a chat restored out of sessionStorage.
+    const lastBot = state.chat.slice().reverse().find((m) => m.role === 'bot' && m.utterance);
+    if (lastBot) state.lastSent = { account: lastBot.account, utterance: lastBot.utterance };
+    syncReplayChip();
+    if (state.chat.length) renderChat();  // the transcript survives a reload within the tab
+    scheduleAccountStatus(0);
     $('#chat-log').addEventListener('click', async (e) => {
       const btn = e.target.closest('button[data-confirm]');
       if (!btn) return;
@@ -171,6 +208,7 @@
   }
 
   async function sendResolve(account, utterance, confirm) {
+    if (!confirm) { state.lastSent = { account, utterance }; syncReplayChip(); }
     state.chat.push({ role: 'user', text: confirm ? `Yes, apply the fix (${account})` : `[${account}] ${utterance}` });
     renderChat();
     const body = { account_id: account, utterance, confirm, idempotency_key: uuid() };
@@ -187,6 +225,38 @@
     state.chat.push({ role: 'bot', outcome: d.outcome || 'unknown', env, account, utterance, pending: d.outcome === 'needs_confirmation' });
     renderChat();
     refreshAccountsMini();
+    scheduleAccountStatus(0);  // a resolved fix changes the account state the status line describes
+  }
+
+  function syncReplayChip() {
+    const b = $('#chat-replay');
+    b.disabled = !state.lastSent;
+    b.title = state.lastSent ? `Send again: [${state.lastSent.account}] ${state.lastSent.utterance}` : 'Send a message first';
+  }
+
+  function scheduleAccountStatus(delay) {
+    clearTimeout(state.acctStatusTimer);
+    state.acctStatusTimer = setTimeout(loadAccountStatus, delay == null ? 400 : delay);
+  }
+
+  async function loadAccountStatus() {
+    const id = $('#chat-account').value.trim();
+    const box = $('#chat-account-status');
+    if (!id) { box.className = 'acct-status muted'; box.textContent = 'Account status: enter an account id'; return; }
+    if (state.acctStatusFor !== id) { box.className = 'acct-status muted'; box.textContent = `Account status (${id}): checking…`; }
+    state.acctStatusFor = id;
+    try {
+      const env = await api('GET', `v1/accounts/${encodeURIComponent(id)}/status`, undefined, { quiet: true });
+      if ($('#chat-account').value.trim() !== id) return;  // the field moved on while we waited
+      const s = env.data || {};
+      const tone = s.active === false ? 'bad' : s.export_permission === true ? 'ok' : 'warn';
+      box.className = 'acct-status ' + tone;
+      box.textContent = `${id}: ${s.summary || env.message}`;
+    } catch (e) {
+      if ($('#chat-account').value.trim() !== id) return;
+      box.className = 'acct-status bad';
+      box.textContent = `${id}: ${e.env.code} — ${e.env.message}`;
+    }
   }
 
   function renderChat() {
@@ -226,7 +296,7 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  async function refreshCustomer() { await refreshAccountsMini(); }
+  async function refreshCustomer() { await Promise.all([refreshAccountsMini(), loadAccountStatus()]); }
 
   async function refreshAccountsMini() {
     const env = await api('GET', 'v1/accounts', undefined, { quiet: true });
@@ -237,7 +307,7 @@
       <tr class="muted"><td>id</td><td>role</td><td>plan</td><td title="active">act</td><td title="migrated">mig</td><td title="export_permission">exp</td></tr>
       ${state.accounts.map((a) => `<tr class="${a.id === sel ? 'sel' : ''}" data-acc="${esc(a.id)}"><td><b>${esc(a.id)}</b></td><td>${esc(a.role)}</td><td>${esc(a.plan)}</td><td>${dot(a.active)}</td><td>${dot(a.migrated)}</td><td>${dot(a.export_permission)}</td></tr>`).join('')}
       </table><div class="hint">click a row to chat as that account &middot; green = true, red = false, grey = unknown</div>` : '<span class="muted">No accounts. Reset the demo data on the Audit tab.</span>';
-    $$('#accounts-mini tr[data-acc]').forEach((tr) => tr.addEventListener('click', () => { $('#chat-account').value = tr.dataset.acc; refreshAccountsMini(); }));
+    $$('#accounts-mini tr[data-acc]').forEach((tr) => tr.addEventListener('click', () => { $('#chat-account').value = tr.dataset.acc; refreshAccountsMini(); scheduleAccountStatus(0); }));
   }
 
   // ======================================================================
@@ -610,6 +680,92 @@
     const aus = newestFirst(au.data);
     $('#audit-count').textContent = aus.length ? `(${aus.length})` : '';
     $('#audit-table tbody').innerHTML = aus.length ? aus.map((a) => `<tr><td>${when(a.timestamp)}</td><td>${esc(a.actor_id)}</td><td><b>${esc(a.action)}</b></td><td class="mono">${esc(a.subject_type)} ${esc(a.subject_id)}</td><td class="mono wrap">${compact(a.detail)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">Empty.</td></tr>';
+  }
+
+  // ======================================================================
+  // TAB 0: DASHBOARD (v1/metrics + v1/audit + v1/tickets + v1/callbacks)
+  // ======================================================================
+  const SHIELD = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>';
+  const pct = (r) => (r && r.den ? Math.round(100 * r.num / r.den) + '%' : '—');
+  const ratio = (r) => (r ? `${r.num} of ${r.den}` : '');
+
+  async function refreshDashboard() {
+    const [met, au, tk, cb] = await Promise.all([
+      api('GET', 'v1/metrics', undefined, { quiet: true }),
+      api('GET', 'v1/audit?limit=8', undefined, { quiet: true }),
+      api('GET', 'v1/tickets', undefined, { quiet: true }),
+      api('GET', 'v1/callbacks', undefined, { quiet: true }),
+    ]);
+    const m = met.data || {};
+    renderKpis(m);
+    setHtml($('#chart-channel'), hbarChart(m.cases_by_channel || {}, { empty: 'No cases yet.', cls: () => 'bar-fill' }));
+    setHtml($('#chart-status'), hbarChart(m.cases_by_status || {}, { empty: 'No cases yet.', cls: (k) => 'bar-fill st-' + k }));
+    renderFunnel(m);
+    renderActivity(newestFirst(au.data));
+    renderTicketsCallbacks(tk.data || [], cb.data || []);
+  }
+
+  function renderKpis(m) {
+    const tile = (label, value, sub, cls, icon) => `<div class="kpi ${cls || ''}"><div class="k-label">${esc(label)}</div><div class="k-value">${icon || ''}<span>${esc(value == null ? '—' : value)}</span></div><div class="k-sub">${sub || '&nbsp;'}</div></div>`;
+    setHtml($('#kpi-grid'), [
+      tile('Cases', m.cases, `${esc(m.events)} trace events`),
+      tile('Human traces', m.human_traces, `${esc(m.candidates)} candidate playbook${m.candidates === 1 ? '' : 's'}`),
+      tile('Approved playbooks', m.approved_playbooks, `learning conversion ${pct(m.learning_conversion)} (${ratio(m.learning_conversion)})`),
+      tile('Resolved & verified', m.resolved_verified, `autonomous resolution ${pct(m.autonomous_resolution)}${m.already_ok ? ` &middot; ${esc(m.already_ok)} already ok` : ''}`, m.resolved_verified ? 'good' : ''),
+      tile('Refused (safe)', m.refused, 'prerequisites failed, nothing changed', m.refused ? 'attention' : ''),
+      tile('Unverified', m.unverified, 'ran but verifier failed', m.unverified ? 'alert' : ''),
+      tile('Unsafe executions', m.unsafe_executions == null ? 0 : m.unsafe_executions, `${esc(m.executions)} execution${m.executions === 1 ? '' : 's'}, all policy-checked`, 'good shield', SHIELD),
+      tile('Tickets', m.tickets, 'opened from eGain workflows'),
+      tile('Callbacks', m.callbacks, 'scheduled from eGain workflows'),
+    ].join(''));
+  }
+
+  // Horizontal bar chart as inline SVG. One neutral series colour by default; the caller may hand
+  // in a class per key (used for the status chart, where status colours are the one allowed exception).
+  function hbarChart(obj, opts) {
+    const keys = Object.keys(obj).sort((a, b) => obj[b] - obj[a] || a.localeCompare(b));
+    const W = 420, LABEL = 150, ROW = 30, PAD = 6, BAR = 14;
+    if (!keys.length) return `<svg viewBox="0 0 ${W} 60"><text class="empty" x="0" y="34">${esc(opts.empty || 'No data.')}</text></svg>`;
+    const max = Math.max(1, ...keys.map((k) => obj[k]));
+    const H = keys.length * ROW + PAD * 2;
+    const inner = W - LABEL - 48;
+    const rows = keys.map((k, i) => {
+      const v = obj[k]; const w = Math.max(v > 0 ? 4 : 0, Math.round(inner * v / max)); const y = PAD + i * ROW + (ROW - BAR) / 2;
+      const r = 4; const path = w > 0 ? `M${LABEL},${y} h${Math.max(0, w - r)} a${r},${r} 0 0 1 ${r},${r} v${BAR - 2 * r} a${r},${r} 0 0 1 -${r},${r} h-${Math.max(0, w - r)} z` : '';
+      const label = k.length > 22 ? k.slice(0, 21) + '…' : k;
+      return `<g class="bar-row"><title>${esc(k)}: ${esc(v)}</title>
+        <text class="bar-label" x="${LABEL - 10}" y="${y + BAR / 2 + 4}" text-anchor="end">${esc(label)}</text>
+        <rect class="bar-track" x="${LABEL}" y="${y}" width="${inner}" height="${BAR}" rx="4"/>
+        ${path ? `<path class="${esc(opts.cls(k))}" d="${path}"/>` : ''}
+        <text class="bar-value" x="${LABEL + w + 8}" y="${y + BAR / 2 + 4}">${esc(v)}</text></g>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="bar chart"><line class="baseline" x1="${LABEL}" y1="${PAD}" x2="${LABEL}" y2="${H - PAD}"/>${rows.join('')}</svg>`;
+  }
+
+  function renderFunnel(m) {
+    const auto = m.autonomous_resolution ? m.autonomous_resolution.num : 0;
+    const stages = [
+      ['Human traces', m.human_traces, ''],
+      ['Candidates', m.candidates, m.human_traces ? `${Math.round(100 * m.candidates / m.human_traces)}% of traces` : ''],
+      ['Approved', m.approved_playbooks, `conversion ${pct(m.learning_conversion)}`],
+      ['Autonomous resolutions', auto, `${pct(m.autonomous_resolution)} of ${m.autonomous_resolution ? m.autonomous_resolution.den : 0} attempt${m.autonomous_resolution && m.autonomous_resolution.den === 1 ? '' : 's'}`],
+    ];
+    const max = Math.max(1, ...stages.map((s) => s[1] || 0));
+    setHtml($('#funnel'), stages.map((s) => `<div class="stage"><div class="f-label">${esc(s[0])}</div><div class="f-value">${esc(s[1] == null ? '—' : s[1])}</div><div class="f-bar"><span style="width:${Math.round(100 * (s[1] || 0) / max)}%"></span></div><div class="f-rate">${esc(s[2]) || '&nbsp;'}</div></div>`).join(''));
+  }
+
+  function renderActivity(entries) {
+    setHtml($('#recent-activity'), entries.length ? entries.slice(0, 8).map((a) => `<li>
+      <span class="a-when">${when(a.timestamp)}</span>
+      <div class="a-main"><span class="badge actor-${esc(a.actor_id)}">${esc(a.actor_id)}</span><span class="a-action">${esc(a.action)}</span><span class="a-subject mono">${esc(a.subject_type)} ${esc(a.subject_id)}</span><span class="a-detail mono" title="${compact(a.detail)}">${compact(a.detail)}</span></div></li>`).join('') : '<li class="muted">No activity yet. Reset the demo data on the Audit tab, then start a conversation.</li>');
+  }
+
+  function renderTicketsCallbacks(tickets, callbacks) {
+    const rows = tickets.map((t) => ({ kind: 'ticket', number: t.number, account: t.account_id, text: t.summary, status: t.status, at: t.created_at }))
+      .concat(callbacks.map((c) => ({ kind: 'callback', number: c.number, account: c.account_id, text: `${c.preferred_time}${c.reason ? ' — ' + c.reason : ''} (${c.phone_masked})`, status: c.status, at: c.created_at })))
+      .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    $('#tc-count').textContent = rows.length ? `(${tickets.length} ticket${tickets.length === 1 ? '' : 's'}, ${callbacks.length} callback${callbacks.length === 1 ? '' : 's'})` : '';
+    setHtml($('#tc-table tbody'), rows.length ? rows.map((r) => `<tr><td><b class="mono">${esc(r.number)}</b> <span class="badge type-${r.kind}">${r.kind}</span></td><td class="mono">${esc(r.account || '—')}</td><td class="summary">${esc(r.text)}</td><td>${badge(r.status)}</td><td class="muted">${when(r.at)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">No tickets or callbacks yet. eGain workflows create them via <code>POST v1/tickets</code> and <code>POST v1/callbacks</code>.</td></tr>');
   }
 
   // ---------- boot ----------
