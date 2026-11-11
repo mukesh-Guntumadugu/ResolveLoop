@@ -90,10 +90,18 @@ class Edit(BaseModel):
     changes: dict
 
 
+def _as_bool(v) -> bool:
+    """Lenient boolean for values an LLM-filled template may send: true/yes/ok/confirmed/apply…"""
+    if isinstance(v, bool):
+        return v
+    t = str(v or "").strip().lower()
+    return t.startswith(("true", "yes", "y", "ok", "confirm", "apply", "please", "go ahead", "sure", "1"))
+
+
 class ResolveIn(BaseModel):
     account_id: str
     utterance: str
-    confirm: bool = False
+    confirm: Any = False
     idempotency_key: Optional[str] = None
     principal_id: Optional[str] = None
     principal_type: str = "customer"
@@ -328,6 +336,8 @@ def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
     principal = {"id": body.principal_id or body.account_id, "type": body.principal_type}
     if principal["type"] == "customer" and principal["id"] != body.account_id:
         raise ApiError(403, "PRINCIPAL_MISMATCH", "You can only resolve issues on your own account")
+    body.account_id = body.account_id.strip().upper()
+    confirm = _as_bool(body.confirm)
 
     # Reuse the open case for this account+utterance when confirming, else open a new one.
     existing = store.list("case", c.tenant_id, lambda k: k["customer_id"] == body.account_id and k["utterance"] == body.utterance and k["status"] in ("AGENT_ATTEMPTED", "NEW"))
@@ -350,9 +360,14 @@ def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
                   message=why, code="NO_PLAYBOOK")
 
     pb = m["playbook"]
-    ex = run_playbook(store, c.tenant_id, case, pb, principal, body.confirm, body.idempotency_key, c.correlation_id)
+    ex = run_playbook(store, c.tenant_id, case, pb, principal, confirm, body.idempotency_key, c.correlation_id)
     summary = {"playbook": {"id": pb["id"], "name": pb["name"], "version": pb["version"]}, "match": {"score": m["score"]}, "execution": ex, "case_id": case["id"]}
 
+    if ex["status"] == "ALREADY_OK":
+        _set_status(case, "CLOSED", "already in verified good state")
+        return ok(c, {"outcome": "resolved", **summary, "verified": True, "already_fixed": True,
+                      "state_after": ex["result"].get("state_after")},
+                  message="Your account already has export enabled and a test export succeeds. No change was needed.", code="ALREADY_RESOLVED")
     if ex["status"] == "BLOCKED":
         _set_status(case, "NEEDS_HUMAN", "prerequisites failed")
         reasons = "; ".join(_explain(f) for f in ex["result"]["failures"])

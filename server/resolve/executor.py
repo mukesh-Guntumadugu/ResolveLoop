@@ -68,6 +68,17 @@ def run(store: Store, tenant_id: str, case: dict, pb: dict, principal: dict, con
 
     failures = check_prerequisites(store, tenant_id, pb, account_id, principal)
     if failures:
+        # Before refusing, check whether the account is already in the verified good state (e.g. the fix was
+        # applied earlier). That is reported honestly as "already ok", never as a new fix.
+        v = pb["verifier"]
+        vres = invoke_tool(store, tenant_id, v["tool"], _fill(v.get("params", {}), {"account_id": account_id}), principal, False)
+        vout = vres.get("output") or {}
+        if vres["success"] and all(vout.get(k) == val for k, val in (v.get("expect") or {}).items()):
+            ex["status"] = "ALREADY_OK"
+            ex["result"] = {"verified": True, "no_action": True, "verifier_output": vout, "state_after": vres.get("before")}
+            store.put("execution", ex)
+            audit(store, tenant_id, principal.get("id", "?"), "EXECUTION_ALREADY_OK", "execution", ex["id"], ex["result"], correlation_id)
+            return ex
         ex["status"] = "BLOCKED"
         ex["result"] = {"reason": "prerequisites not met", "failures": failures}
         store.put("execution", ex)

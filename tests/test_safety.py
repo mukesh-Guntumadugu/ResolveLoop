@@ -87,3 +87,19 @@ def test_bad_edit_field_rejected(client):
     pb = learn_and_approve(client, human_fix(client))
     r = client.post(f"/v1/playbooks/{pb['id']}/edit", headers=H, json={"reviewer_id": "r", "changes": {"status": "APPROVED"}})
     assert r.status_code == 400
+
+
+def test_repeat_request_after_fix_reports_already_resolved(client):
+    learn_and_approve(client, human_fix(client))
+    u = "I can't download the CSV after we migrated"
+    assert resolve(client, "C002", u, confirm=True, key="first").json()["data"]["outcome"] == "resolved"
+    r = resolve(client, "C002", u, confirm="yes please", key=None)
+    assert r.json()["code"] == "ALREADY_RESOLVED" and r.json()["data"]["already_fixed"] is True
+    muts = [e for e in client.get(f"/v1/cases/{r.json()['data']['case_id']}/trace", headers=H).json()["data"] if e["tool_id"] == "accounts.grant_export_permission"]
+    assert muts == []
+
+
+def test_already_enabled_account_is_not_mutated(client):
+    learn_and_approve(client, human_fix(client))
+    r = resolve(client, "C009", "Export button spins forever", confirm=True, key="c9")
+    assert r.json()["code"] == "ALREADY_RESOLVED"
