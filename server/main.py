@@ -20,6 +20,7 @@ from .mock_business.tools import TOOLS, get_account, invoke_tool, public_profile
 from .resolve.executor import run as run_playbook
 from .resolve.matcher import match
 from .review.registry import new_version, register_candidate, transition, validate_playbook
+from .support import CallbackIn, TicketIn, account_status, create_callback, create_ticket, metrics
 from .trace.events import audit, record_event, trace_for_case
 
 app = FastAPI(title="ResolveLoop", version="0.1.0", root_path=config.ROOT_PATH)
@@ -123,7 +124,7 @@ def health():
 @app.post("/v1/admin/reset")
 def reset(c: Ctx = Depends(ctx), keep_playbooks: bool = False):
     require_key(c)
-    kinds = ["account", "case", "event", "execution", "audit"] + ([] if keep_playbooks else ["playbook"])
+    kinds = ["account", "case", "event", "execution", "audit", "ticket", "callback"] + ([] if keep_playbooks else ["playbook"])
     store.clear(kinds, c.tenant_id)
     n = seed_accounts(store, c.tenant_id)
     audit(store, c.tenant_id, "admin", "RESET", "tenant", c.tenant_id, {"accounts": n, "keep_playbooks": keep_playbooks}, c.correlation_id)
@@ -397,6 +398,50 @@ def _explain(f: dict) -> str:
     if "field" in p:
         return f"{p['field']} is {f['actual']!r}, needs {p['value']!r}"
     return f"{p['tool']} says {f['actual'].get('reason', f['actual'])}"
+
+
+# ---------- support records (eGain workflows) ----------
+@app.post("/v1/tickets")
+def post_ticket(body: TicketIn, c: Ctx = Depends(ctx)):
+    require_key(c)
+    t = create_ticket(store, c.tenant_id, body, c.correlation_id)
+    return ok(c, t, message=f"Ticket {t['number']} opened. A specialist will reply within {t['sla_hours']} hours.", code="TICKET_CREATED")
+
+
+@app.get("/v1/tickets")
+def list_tickets(c: Ctx = Depends(ctx)):
+    return ok(c, store.list("ticket", c.tenant_id))
+
+
+@app.get("/v1/tickets/{number}")
+def get_ticket(number: str, c: Ctx = Depends(ctx)):
+    found = [t for t in store.list("ticket", c.tenant_id) if t["number"].lower() == number.strip().lower()]
+    if not found:
+        raise ApiError(404, "TICKET_NOT_FOUND", "No such ticket")
+    return ok(c, found[0], message=f"Ticket {found[0]['number']} is {found[0]['status'].lower()}.")
+
+
+@app.post("/v1/callbacks")
+def post_callback(body: CallbackIn, c: Ctx = Depends(ctx)):
+    require_key(c)
+    cb = create_callback(store, c.tenant_id, body, c.correlation_id)
+    return ok(c, cb, message=f"Callback {cb['number']} scheduled for {cb['preferred_time']}; we will call the number ending in {cb['phone_masked'][-4:]}.", code="CALLBACK_SCHEDULED")
+
+
+@app.get("/v1/callbacks")
+def list_callbacks(c: Ctx = Depends(ctx)):
+    return ok(c, store.list("callback", c.tenant_id))
+
+
+@app.get("/v1/accounts/{account_id}/status")
+def get_account_status(account_id: str, c: Ctx = Depends(ctx)):
+    st = account_status(store, c.tenant_id, account_id)
+    return ok(c, st, message=st["summary"])
+
+
+@app.get("/v1/metrics")
+def get_metrics(c: Ctx = Depends(ctx)):
+    return ok(c, metrics(store, c.tenant_id))
 
 
 # ---------- executions and audit ----------
