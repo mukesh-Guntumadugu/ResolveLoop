@@ -25,7 +25,7 @@ systemctl enable --now resolveloop
 systemctl restart resolveloop
 sleep 1
 curl -fsS http://127.0.0.1:8790/health && echo
-if ! grep -q "location /resolveloop/" /etc/nginx/conf.d/allergylens.conf; then
+if ! grep -qE "location /resolveloop/|resolveloop-location.conf" /etc/nginx/conf.d/allergylens.conf; then
   echo "NOTE: add deploy/nginx-resolveloop.conf inside the 443 server block of /etc/nginx/conf.d/allergylens.conf, then: nginx -t && systemctl reload nginx"
 fi
 REMOTE
