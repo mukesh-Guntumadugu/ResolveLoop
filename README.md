@@ -1,6 +1,6 @@
 # ResolveLoop — human-to-AI support learning
 
-Entry for the eGain hackathon **"Build, Demo, and Take Home a Working AI Support Bot"** (Devpost, Nov 2026).
+Entry for the eGain hackathon **"Build, Demo, and Take Home a Working AI Support Bot"** (Devpost, Nov 2026). MIT licensed, see `LICENSE`.
 
 ResolveLoop is a learning layer behind an eGain AI Agent. When the agent escalates a problem it cannot solve,
 a human specialist fixes it in a simulated support desk. The desk records the specialist's **structured tool

@@ -9,7 +9,7 @@ Form: https://www.egain.com/ai-agent-hackathon-project-submission/ — deadline 
 - eGain capabilities demonstrated: Knowledge-based answers, Published experience with Orbit look and feel, Pre-chat workflow, Escalation workflow with ticket and callback API nodes, two Process workflows (export troubleshooter, subscription check) with API nodes and a Condition, three Custom API Actions (all observed working on 2026-11-11, see `egain/OBSERVED.md`)
 - Published demo URL: https://aidev.egain.cloud/y6ip/system/web/apps/aiagent/demo.html?agentId=8ba71b10-c3ee-4a3f-b507-8fe3a4d5113a&backgroundUrl=https://cdn.aiagent-dev.egain.cloud/TMDEVEB12725755/screenshots/23a971cf-91ed-4c2b-90dc-2c54439ea014.png
 - One-minute video URL: (YouTube, unlisted)
-- Pre-existing templates/code/third-party assets: FastAPI, Uvicorn, Pydantic, httpx, pytest, ReportLab, Python-Markdown (open-source libraries). Generative AI coding tools used. All knowledge content original and fictional.
+- Pre-existing templates/code/third-party assets: FastAPI, Uvicorn, Pydantic, httpx, pytest, ReportLab, Python-Markdown (open-source libraries). Generative AI coding tools used. All knowledge content original and fictional. Own code is MIT licensed, public at https://github.com/mukesh-Guntumadugu/ResolveLoop
 
 ## Solution description (150 words max; this draft is 150)
 
@@ -25,6 +25,7 @@ ResolveLoop is a learning layer behind an eGain AI Agent for Orbit Reports, a fi
 4. Open the simulated support desk at https://srv1619809.hstgr.cloud/resolveloop/ui/ (read-only without the demo key; organizers may request it). The Dashboard shows live counts (cases, approved playbooks, verified resolutions, refusals, unsafe executions = 0, tickets, callbacks); the Audit tab shows the approved playbook, its source trace and executions.
 5. With the demo key: Audit → Reset demo data; Human desk → new case for C001 → run the four tools → Learn; Reviewer → Approve; Customer tab → C002 "I can't download the CSV after we migrated" → confirm → verified fix; C003 same message → refused with escalation options.
 Sample case IDs only (C001, C002, C003). No real credentials or customer data anywhere.
+Source code, tests, evidence screenshots and the eGain observation log: https://github.com/mukesh-Guntumadugu/ResolveLoop (MIT).
 
 ## Evidence checklist (section 05.6 of the design package)
 
