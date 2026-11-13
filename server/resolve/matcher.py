@@ -42,18 +42,23 @@ CODE = re.compile(r"^[a-z]+-\d+$")  # error codes such as rm-100 count as a symp
 INJECTION = re.compile(r"(ignore (all|previous|the) (checks|instructions|rules)|run the admin tool|delete_all|drop table|system prompt)", re.I)
 
 
-def concepts(text: str) -> set:
+def concepts(text: str, vocabulary: Optional[dict] = None) -> set:
+    """Canonical concepts of a message: the shared table first, then the sector's own vocabulary (a domain plug-in
+    declares words such as "internet" -> "data" or "landed" -> "abroad"; a reviewer extends it when recall misses)."""
     toks = tokenize(text.replace("'", ""))
     out = set()
     for t in toks:
         if t in STOP:
             continue
-        out.add(CANON.get(t, t))
+        if vocabulary and t in vocabulary:
+            out.add(vocabulary[t])
+        else:
+            out.add(CANON.get(t, t))
     return out
 
 
-def score(utterance: str, example: str) -> float:
-    a, b = concepts(utterance), concepts(example)
+def score(utterance: str, example: str, vocabulary: Optional[dict] = None) -> float:
+    a, b = concepts(utterance, vocabulary), concepts(example, vocabulary)
     if not a or not b:
         return 0.0
     inter = len(a & b)
@@ -75,13 +80,14 @@ EXECUTABLE = ("APPROVED", "SUPERVISED")
 def match(utterance: str, playbooks: list, domain: Optional[str] = None) -> dict:
     """Return {decision: match|abstain|none, playbook, score, injection}. Only this domain's executable playbooks count."""
     injection = bool(INJECTION.search(utterance or ""))
+    vocab = _vocabulary(domain)
     best, best_score = None, 0.0
     for pb in playbooks:
         if pb.get("status") not in EXECUTABLE:
             continue  # retired, draft and pending are filtered out, whatever their similarity
         if domain and pb.get("domain", "saas") != domain:
             continue
-        s = max((score(utterance, ex) for ex in pb.get("match_examples", [])), default=0.0)
+        s = max((score(utterance, ex, vocab) for ex in pb.get("match_examples", [])), default=0.0)
         if s > best_score:
             best, best_score = pb, s
     if injection:
@@ -91,3 +97,11 @@ def match(utterance: str, playbooks: list, domain: Optional[str] = None) -> dict
     if best and best_score >= ABSTAIN_THRESHOLD:
         return {"decision": "abstain", "playbook": best, "score": round(best_score, 3), "injection": False}
     return {"decision": "none", "playbook": None, "score": round(best_score, 3), "injection": False}
+
+
+def _vocabulary(domain: Optional[str]) -> dict:
+    if not domain:
+        return {}
+    from ..domains.registry import DOMAINS  # local import: domains never import the matcher
+    d = DOMAINS.get(domain)
+    return dict(d.vocabulary) if d else {}

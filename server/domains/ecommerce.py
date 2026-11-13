@@ -52,6 +52,9 @@ class EcommerceDomain(Domain):
     prereq_fields = ("active", "paid", "migrated", "dispatch_queued")
     degraded_field = "label_service_degraded"
     default_intent = "dispatch_stuck_after_wms4"
+    vocabulary = {"courier": "dispatch", "carrier": "dispatch", "fulfilment": "dispatch", "fulfillment": "dispatch", "picked": "dispatch",
+                  "processing": "stuck", "pending": "stuck", "limbo": "stuck", "nowhere": "stuck", "moved": "stuck", "update": "stuck",
+                  "item": "order", "items": "order", "stuff": "order", "goods": "order", "box": "order"}
     intent_examples = ("paid order stuck in awaiting dispatch after the WMS 4 warehouse cutover, SH-100",
                        "no shipping label or tracking generated, parcel never dispatched",
                        "order not shipped since the warehouse system change")

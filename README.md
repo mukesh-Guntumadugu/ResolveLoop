@@ -90,7 +90,7 @@ infrastructure support.
 
 ## Measured quality: the scored evaluation
 
-`eval/sectors.py` holds 156 labelled cases, 39 per sector, labelled by intent before the system was run: 12 paraphrases of
+`eval/sectors.py` holds 172 labelled cases, 43 per sector, labelled by intent before the system was run: 16 paraphrases of
 the sector's problem on eligible accounts, already-fixed accounts, every kind of ineligible account, a broken verifier
 backend, 8 out-of-scope requests (refunds, address and owner changes, password resets, cancellations), 4 vague
 one-word messages, 4 prompt injections and 3 messages from the other sectors. `python -m eval.run_eval` teaches each
@@ -98,27 +98,31 @@ sector once (one human fix, learn, approve), then runs every case on a freshly r
 again with confirm=true, and writes `evidence/eval-report.md`. The same run is a release gate in
 `tests/test_eval_gates.py`: the safety rows must be perfect, recall and resolution have a 90% floor.
 
-Live run against the deployment on 2026-11-13 (own tenant, 517 calls, p95 197 ms; the in-process run gives the same rows):
+Live run against the deployment on 2026-11-13 (own tenant, 565 calls, p95 368 ms; the in-process run gives the same rows):
 
 | Metric | saas | telecom | ecommerce | ithelpdesk | All |
 |---|---|---|---|---|---|
-| Exact expected outcome | 100% | 92.3% | 100% | 97.4% | 97.4% |
-| Match precision / recall | 100 / 100 | 100 / 85 | 100 / 100 | 100 / 95 | 100 / 95 |
-| Eligible cases fixed and verified | 100% | 83.3% | 100% | 91.7% | 93.8% |
-| Ineligible refused, already-fixed reported honestly | 100% | 80 / 100 | 100% | 100% | 94.7 / 100 |
+| Exact expected outcome | 100% | 100% | 100% | 97.7% | 99.4% |
+| Match precision / recall | 100 / 100 | 100 / 100 | 100 / 100 | 100 / 95.8 | 100 / 99 |
+| Eligible cases fixed and verified | 100% | 100% | 100% | 93.8% | 98.4% |
+| Ineligible refused, already-fixed reported honestly | 100% | 100% | 100% | 100% | 100% |
 | Broken backend caught by the verifier | 100% | 100% | 100% | 100% | 100% |
 | Out-of-scope escalated, vague abstained, injections blocked | 100% | 100% | 100% | 100% | 100% |
 | Cross-sector leakage, wrong actions, actions without consent | 0 | 0 | 0 | 0 | 0 |
-| LLM draft (Qwen3-8B on the GX10) same steps and verifier as the human-taught playbook | yes, 18 s | yes, 25 s | yes, 23 s | yes, 28 s | 4 of 4 |
+| LLM draft (Qwen3-8B on the GX10) same steps and verifier as the human-taught playbook | yes, 23 s | yes, 23 s | yes, 22 s | yes, 25 s | 4 of 4 |
 
-The four misses are all on the safe side: hard paraphrases that never name the problem ("I'm travelling and my phone has no
-internet, calls work though", "Landed in Italy, nothing loads", "I can sign in to the portal but the VPN rejects me") score in
-the abstain band and go to a specialist instead of being guessed. The first run of this set found and fixed three real
-defects: a learned saas playbook had frozen `role == analyst` from its one example and refused entitled admins; a
-one-utterance playbook generalised poorly (telecom recall 50%), so learned playbooks are now seeded with the runbook's
-canonical phrasings; and "Export button spins forever since the migration" on an order re-queued dispatch because the two
-only shared "stuck" and "migration", so a match now needs a shared specific concept and a symptom in the message. Those
-were two wrong actions in 156 cases before the fix and zero after.
+The one miss is on the safe side: "Duo passes but then the VPN kicks me out" names no symptom the sector vocabulary knows,
+scores in the abstain band and goes to a specialist instead of being guessed.
+
+How the set was used, in order. The first run (156 cases) scored 89% with two wrong actions and found three real defects:
+a learned saas playbook had frozen `role == analyst` from its one example and refused entitled admins; a one-utterance
+playbook generalised poorly (telecom recall 50%), so learned playbooks are now seeded with the runbook's canonical
+phrasings; and "Export button spins forever since the migration" on an order re-queued dispatch because the two only
+shared "stuck" and "migration", so a match now needs a shared specific concept and a symptom in the message. That took
+the set to 97.4% with four safe misses. Recall was then improved by giving each domain plug-in a reviewer-editable
+`vocabulary` (sector words to concepts: "internet" and "4G" to data, "landed" and country names to abroad, "AnyConnect"
+to VPN, "rejected" to a symptom), and 16 new paraphrases were written and labelled *before* that change was run, as a
+held-out check. Fifteen of the sixteen matched.
 
 ## Layout
 

@@ -52,6 +52,13 @@ class TelecomDomain(Domain):
     prereq_fields = ("active", "upgraded", "roaming_enabled")
     degraded_field = "roaming_service_degraded"
     default_intent = "roaming_lost_after_upgrade"
+    vocabulary = {"internet": "data", "signal": "data", "web": "data", "4g": "data", "5g": "data", "lte": "data", "browsing": "data",
+                  "whatsapp": "data", "maps": "data", "loads": "stuck", "load": "stuck", "rejects": "stuck", "denied": "stuck",
+                  "landed": "abroad", "landing": "abroad", "arrived": "abroad", "flight": "abroad", "airport": "abroad", "border": "abroad",
+                  "europe": "abroad", "spain": "abroad", "italy": "abroad", "france": "abroad", "germany": "abroad", "portugal": "abroad",
+                  "greece": "abroad", "uk": "abroad", "london": "abroad", "paris": "abroad", "usa": "abroad", "mexico": "abroad",
+                  "canada": "abroad", "japan": "abroad", "india": "abroad", "thailand": "abroad", "australia": "abroad", "dubai": "abroad",
+                  "turkey": "abroad", "ireland": "abroad", "netherlands": "abroad", "switzerland": "abroad"}
     intent_examples = ("no data roaming abroad after the Core Network Upgrade 5, RM-100",
                        "mobile data not working while travelling overseas since the network upgrade",
                        "roaming lost or disabled on the line after CNU-5")

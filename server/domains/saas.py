@@ -53,6 +53,9 @@ class SaasDomain(Domain):
     prereq_fields = ("active", "migrated", "export_permission")
     degraded_field = "export_service_degraded"
     default_intent = "export_blocked_after_migration"
+    vocabulary = {"spreadsheet": "export", "excel": "export", "xlsx": "export", "file": "export", "sheet": "export",
+                  "timeout": "stuck", "timed": "stuck", "errors": "stuck", "crashes": "stuck", "blank": "stuck", "nothing": "stuck",
+                  "workspace": "report", "analytics": "report", "widget": "report"}
     intent_examples = ("report export stuck or spinning after the Cloud 2 migration, EXP-100",
                        "cannot download or export reports since the workspace was migrated",
                        "export button hangs, exports never finish")

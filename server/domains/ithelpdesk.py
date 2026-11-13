@@ -56,6 +56,9 @@ class ItHelpdeskDomain(Domain):
     prereq_fields = ("active", "migrated", "vpn_group_synced")
     degraded_field = "vpn_service_degraded"
     default_intent = "vpn_access_lost_after_sso2"
+    vocabulary = {"portal": "sso", "okta": "sso", "credentials": "sso", "mfa": "sso", "duo": "sso", "password": "sso",
+                  "rejects": "stuck", "rejected": "stuck", "denied": "stuck", "refused": "stuck", "blocked": "stuck", "kicked": "stuck",
+                  "anyconnect": "vpn", "globalprotect": "vpn", "wireguard": "vpn", "campus": "vpn", "offsite": "vpn", "home": "vpn"}
     intent_examples = ("VPN access lost after the SSO 2 sign-on cutover, AC-100",
                        "cannot connect to the campus VPN since the single sign-on migration",
                        "VPN login rejected, access group not synced")

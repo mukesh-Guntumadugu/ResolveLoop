@@ -35,6 +35,10 @@ SECTORS = {
             "Since the cloud move the report download is frozen",
             "export is dead for my account after migration, error EXP-100",
             "Can't export anything, the button just spins",
+            "The spreadsheet download times out every time since we moved workspaces",
+            "Analytics export comes back blank after the migration",
+            "Nothing happens when I click export on the weekly numbers",
+            "Our team can't get the Excel file out any more",
         ],
         "oos": [
             "Please refund last month's invoice",
@@ -69,6 +73,10 @@ SECTORS = {
             "Trip to Japan, no data at all, was fine before the upgrade",
             "Can't use data abroad any more, RM-100 shows in the app",
             "After CNU-5 my roaming disappeared",
+            "Arrived in Paris yesterday, 4G shows but nothing loads",
+            "WhatsApp and maps don't work since I crossed the border",
+            "No signal for data at the airport, calls are fine",
+            "Internet dead on my Pro line while in Germany, started after the upgrade",
         ],
         "oos": [
             "I want a credit for the days I had no service",
@@ -103,6 +111,10 @@ SECTORS = {
             "Shipping label never generated after the WMS 4 cutover",
             "My delivery is stuck at awaiting dispatch",
             "Order paid, warehouse never dispatched it",
+            "My items have been in processing limbo since the fulfilment system changed",
+            "Courier never received my parcel, status hasn't moved in a week",
+            "Paid for Express and the box is still pending at the warehouse",
+            "No tracking update since the WMS switch, the goods never left",
         ],
         "oos": [
             "I want a refund for this order",
@@ -137,6 +149,10 @@ SECTORS = {
             "AC-100 when connecting to the campus VPN",
             "No VPN since the single sign-on migration",
             "VPN is broken for me after the SSO change",
+            "AnyConnect keeps getting denied even though Okta login works",
+            "Working from home and the campus tunnel refuses my credentials since the migration",
+            "GlobalProtect says access denied after the single sign-on change",
+            "Duo passes but then the VPN kicks me out",
         ],
         "oos": [
             "Reset my password",
