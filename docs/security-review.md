@@ -22,8 +22,8 @@ is a product. None of the findings were exploited; the account data is synthetic
 
 | # | Severity | Finding |
 |---|----------|---------|
-| F1 | High | High-risk tools (refund, address/owner change, password reset) are reachable directly with the shared key; "human specialist" and "identity verified" are self-asserted |
-| F2 | High | A single shared API key does everything; actor and reviewer ids are free text, so the audit trail and consent receipts can be attributed to any name |
+| F1 | High — **FIXED** | High-risk tools were reachable with a self-asserted `identity_verified:true`. Now a server-verified per-account code is required; proven live (`identity_verified:true` -> `IDENTITY_UNVERIFIED`) |
+| F2 | High — **partly fixed** | Identity is no longer self-asserted on resolve: omitting the principal now means the key-authorized agent, not the account owner, and an explicit customer must match the account (proven live, `PRINCIPAL_MISMATCH`). Still open: one shared key and free-text reviewer ids (no RBAC) |
 | F3 | Medium | All read endpoints are unauthenticated: cases, traces, executions, consent receipts and the full audit log are world-readable on the host |
 | F4 | Medium | Tenant is a caller-chosen header with one shared key across all tenants; it is a namespace, not a security boundary |
 | F5 | Low–Med | CORS is wide open (`*`), which lets any website read the unauthenticated endpoints from a visitor's browser |
@@ -55,6 +55,11 @@ design says must stay human-only.
 **Fix.** Treat "specialist" as an authenticated role, not a string in the body: require a
 separate, per-operator credential for the human path, and make identity verification a
 server-side fact (a recorded verification step on the case), never a client-supplied flag.
+**Status (2026-11-13): FIXED.** The high-risk gate now requires `params.verification_code`
+to equal the account's server-held `verify_code` (`server/mock_business/tools.py`,
+`human_required_gate`); a client-set `identity_verified` boolean is ignored. Proven live:
+`payments.refund` with `identity_verified:true` returns `IDENTITY_UNVERIFIED`. The code is
+redacted from the stored trace. Per-operator credentials (the role part) are still TODO.
 
 ### F2 — One shared key, self-asserted actors: audit and consent integrity
 **Where.** `server/main.py:57` (key check), `ToolCall`/`Decision` models (`actor_id`,
@@ -70,6 +75,10 @@ said what, when"). Self-asserted identity makes them non-repudiable in appearanc
 **Fix.** Separate credentials and roles (agent key vs operator vs reviewer), derive the
 actor from the authenticated identity, and reject a mismatch between the claimed and the
 authenticated id. Enforce that an approver is not the drafter.
+**Status (2026-11-13): partly fixed.** Identity on `/v1/resolve` is no longer assumed:
+omitting the principal now yields the key-authorized `agent`, not the account owner, and an
+explicit `customer` principal must match the account (proven live: `PRINCIPAL_MISMATCH`).
+Still open: one shared key and free-text `reviewer_id`/`actor_id` (no RBAC, no approver-≠-drafter enforcement).
 
 **Proven live (eval tenant, confirm=false, nothing mutated).** Identity is self-asserted:
 `POST /v1/resolve {account_id:"C002", principal_id:"C001", principal_type:"customer"}` ->

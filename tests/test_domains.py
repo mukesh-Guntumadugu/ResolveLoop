@@ -1,6 +1,7 @@
 """Further domains (Nimbus Mobile telecom, Harbor Goods ecommerce, Northgate IT helpdesk) run the same loop; high-risk
 tools stay human-only."""
 from conftest import H, human_fix, human_fix_ecommerce, human_fix_ithelpdesk, human_fix_telecom, learn_and_approve, resolve, tool
+from server.mock_business.tools import verify_code
 
 
 def test_reset_seeds_all_domains_and_status_is_domain_aware(client):
@@ -124,16 +125,20 @@ def test_high_risk_tool_is_human_only(client):
     r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "billing.issue_credit", "params": {"account_id": "N001", "amount": 20, "identity_verified": True},
                                                         "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
     assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED", r.text
-    # A specialist needs consent and a verified identity.
-    r = tool(client, cid, "billing.issue_credit", {"account_id": "N001", "amount": 20}, consent=True)
-    assert r.status_code == 403 and r.json()["code"] == "IDENTITY_UNVERIFIED"
-    r = tool(client, cid, "billing.issue_credit", {"account_id": "N001", "amount": 20, "identity_verified": True}, consent=False)
-    assert r.status_code == 403 and r.json()["code"] == "CONSENT_REQUIRED"
+    # A specialist needs consent AND a server-verified identity code; a self-asserted boolean no longer works.
     r = tool(client, cid, "billing.issue_credit", {"account_id": "N001", "amount": 20, "identity_verified": True}, consent=True)
+    assert r.status_code == 403 and r.json()["code"] == "IDENTITY_UNVERIFIED", "a client-set boolean must not verify identity"
+    r = tool(client, cid, "billing.issue_credit", {"account_id": "N001", "amount": 20, "verification_code": "000000"}, consent=True)
+    assert r.status_code == 403 and r.json()["code"] == "IDENTITY_UNVERIFIED", "a wrong code must be rejected"
+    code = verify_code("N001")
+    r = tool(client, cid, "billing.issue_credit", {"account_id": "N001", "amount": 20, "verification_code": code}, consent=False)
+    assert r.status_code == 403 and r.json()["code"] == "CONSENT_REQUIRED"
+    r = tool(client, cid, "billing.issue_credit", {"account_id": "N001", "amount": 20, "verification_code": code}, consent=True)
     assert r.status_code == 200 and r.json()["data"]["result"]["credited"] is True, r.text
     ev = r.json()["data"]["event"]
-    assert ev["risk"] == "high" and ev["gate"]["identity_verified"] is True and ev["safe_inputs"]["identity_verified"] is True
-    r = tool(client, cid, "account.change_owner", {"account_id": "N001", "new_owner": "Dana", "identity_verified": True}, consent=True)
+    assert ev["risk"] == "high" and ev["gate"]["identity_verified"] is True and ev["gate"]["verification_method"] == "account_code"
+    assert ev["safe_inputs"]["verification_code"] == "[REDACTED]", "the identity code must never be stored in the clear"
+    r = tool(client, cid, "account.change_owner", {"account_id": "N001", "new_owner": "Dana", "verification_code": verify_code("N001")}, consent=True)
     assert r.status_code == 200 and r.json()["data"]["result"]["owner"] == "Dana"
     assert client.get("/v1/metrics", headers=H).json()["data"]["human_required_blocks"] >= 2
 
@@ -183,7 +188,9 @@ def test_consent_receipt_records_exact_words_time_and_channel(client):
     ex = r.json()["data"]["execution"]
     consent = ex["consent"]
     assert consent["utterance"] == "Yes, go ahead and apply it" and consent["channel"] == "egain"
-    assert consent["session_id"] == "chat-123" and consent["principal"]["id"] == "N002" and consent["at"]
+    # The acting principal is the key-authorized agent (no customer principal was asserted); the account the consent
+    # pertains to is recorded explicitly.
+    assert consent["session_id"] == "chat-123" and consent["account_id"] == "N002" and consent["principal"]["type"] == "agent" and consent["at"]
     rc = client.get(f"/v1/executions/{ex['id']}/receipt", headers=H).json()["data"]
     assert rc["consent"]["utterance"] == "Yes, go ahead and apply it"
     assert rc["playbook"]["status"] == "APPROVED" and rc["case"]["customer_id"] == "N002"
@@ -247,10 +254,10 @@ def test_ecommerce_loop_end_to_end(client):
     r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "orders.change_address", "params": {"account_id": "H001", "new_address": "1 Pier Road", "identity_verified": True},
                                                         "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
     assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED"
-    assert tool(client, cid, "payments.refund", {"account_id": "H001", "amount": 20}, consent=True).json()["code"] == "IDENTITY_UNVERIFIED"
-    r = tool(client, cid, "payments.refund", {"account_id": "H001", "amount": 20, "identity_verified": True}, consent=True)
+    assert tool(client, cid, "payments.refund", {"account_id": "H001", "amount": 20, "identity_verified": True}, consent=True).json()["code"] == "IDENTITY_UNVERIFIED"
+    r = tool(client, cid, "payments.refund", {"account_id": "H001", "amount": 20, "verification_code": verify_code("H001")}, consent=True)
     assert r.status_code == 200 and r.json()["data"]["result"]["refunded"] is True and r.json()["data"]["event"]["risk"] == "high"
-    r = tool(client, cid, "orders.change_address", {"account_id": "H001", "new_address": "1 Pier Road", "identity_verified": True}, consent=True)
+    r = tool(client, cid, "orders.change_address", {"account_id": "H001", "new_address": "1 Pier Road", "verification_code": verify_code("H001")}, consent=True)
     assert r.status_code == 200 and r.json()["data"]["result"] == {"changed": True}
     assert r.json()["data"]["event"]["safe_inputs"]["new_address"] == "[REDACTED]" and "Pier" not in r.text
 
@@ -309,10 +316,26 @@ def test_ithelpdesk_loop_end_to_end(client):
     r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "identity.change_owner_email", "params": {"account_id": "U001", "new_email": "new@northgate-u.example", "identity_verified": True},
                                                         "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
     assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED"
-    assert tool(client, cid, "identity.reset_password", {"account_id": "U001"}, consent=True).json()["code"] == "IDENTITY_UNVERIFIED"
-    r = tool(client, cid, "identity.reset_password", {"account_id": "U001", "identity_verified": True}, consent=True)
+    assert tool(client, cid, "identity.reset_password", {"account_id": "U001", "identity_verified": True}, consent=True).json()["code"] == "IDENTITY_UNVERIFIED"
+    r = tool(client, cid, "identity.reset_password", {"account_id": "U001", "verification_code": verify_code("U001")}, consent=True)
     assert r.status_code == 200 and r.json()["data"]["result"]["reset"] is True and "password" not in str(r.json()["data"]["result"].get("temporary", ""))
-    r = tool(client, cid, "identity.change_owner_email", {"account_id": "U001", "new_email": "new@northgate-u.example", "identity_verified": True}, consent=True)
+    r = tool(client, cid, "identity.change_owner_email", {"account_id": "U001", "new_email": "new@northgate-u.example", "verification_code": verify_code("U001")}, consent=True)
     assert r.status_code == 200 and r.json()["data"]["result"] == {"changed": True}
     assert r.json()["data"]["event"]["safe_inputs"]["new_email"] == "[REDACTED]" and "new@northgate" not in r.text
     assert client.get("/v1/metrics", headers=H).json()["data"]["human_required_blocks"] >= 2
+
+
+def test_resolve_identity_is_explicit_not_self_asserted(client):
+    """Naming an account no longer makes you its owner: with no principal you are the key-authorized agent, and an
+    explicit customer principal must match the account. The per-account verify_code never appears in any read."""
+    learn_and_approve(client, human_fix(client))  # approve the saas export playbook
+    # No principal -> treated as the integration agent, not the account owner; the approved fix still proposes.
+    r = resolve(client, "C002", "export is stuck since the migration").json()
+    assert r["data"]["outcome"] in ("needs_confirmation", "resolved"), r
+    # Claiming to be a different customer than the account is refused.
+    r = client.post("/v1/resolve", headers=H, json={"account_id": "C002", "utterance": "export stuck",
+                    "principal_id": "C001", "principal_type": "customer"})
+    assert r.json()["code"] == "PRINCIPAL_MISMATCH", r.text
+    # The identity code is server-side only: it is in no account read and no trace.
+    acc = client.get("/v1/accounts/C002", headers=H).json()["data"]
+    assert "verify_code" not in acc and "verify_code" not in str(client.get("/v1/accounts", headers=H).json()["data"])

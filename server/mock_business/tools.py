@@ -7,7 +7,11 @@ Nothing here talks to a real system.
 """
 from typing import Any, Optional
 
+import hashlib
+import hmac
+
 from ..common import ApiError, now_iso
+from ..config import IDENTITY_SALT
 from ..db import Store
 from ..domains import DOMAINS, all_tools, domain_of, domains_for_tool, get_domain
 from ..domains.base import ok_result
@@ -19,13 +23,21 @@ from ..trace.events import audit
 TOOLS: dict = all_tools()
 
 
+def verify_code(account_id: str) -> str:
+    """Deterministic synthetic 6-digit identity code for an account. Stands in for the PIN / one-time code a
+    specialist asks the customer for before a high-risk action; derived from a salted hash so it is stable for the
+    demo but not guessable from the account id alone. Never returned in any public profile and redacted in traces."""
+    h = hashlib.sha256(f"{IDENTITY_SALT}:{(account_id or '').strip().upper()}".encode()).hexdigest()
+    return str(int(h[:12], 16) % 1_000_000).zfill(6)
+
+
 def seed_accounts(store: Store, tenant_id: str, domain: Optional[str] = None) -> int:
-    """Seed every domain's accounts (or one domain's). Each record carries its `domain`."""
+    """Seed every domain's accounts (or one domain's). Each record carries its `domain` and a server-side verify_code."""
     store.clear(["account"], tenant_id)
     n = 0
     for d in ([get_domain(domain)] if domain else DOMAINS.values()):
         for row in d.seed_rows():
-            store.put("account", {**row, "tenant_id": tenant_id, "domain": d.id, "updated_at": now_iso()})
+            store.put("account", {**row, "tenant_id": tenant_id, "domain": d.id, "verify_code": verify_code(row["id"]), "updated_at": now_iso()})
             n += 1
     return n
 
@@ -70,11 +82,19 @@ def human_required_gate(store: Store, tenant_id: str, tool_id: str, params: dict
         raise ApiError(403, "HUMAN_REQUIRED", f"'{tool_id}' is a high-risk action; only a human specialist may run it, never a playbook or an agent")
     if not consent:
         raise ApiError(403, "CONSENT_REQUIRED", "Explicit consent is required before a high-risk action")
-    if (params or {}).get("identity_verified") is not True:
+    # Identity is verified against a server-held per-account code, never a client-supplied boolean: the specialist
+    # must present the code the customer gave (params.verification_code), and the server compares it to the account's
+    # own verify_code. A wrong or missing code blocks the action and is audited.
+    acc = get_account(store, tenant_id, params.get("account_id")) if params.get("account_id") else None
+    expected = (acc or {}).get("verify_code")
+    supplied = str((params or {}).get("verification_code") or "")
+    if not expected or not supplied or not hmac.compare_digest(supplied, str(expected)):
         audit(store, tenant_id, principal.get("id", "?"), "HUMAN_REQUIRED_BLOCKED", "tool", tool_id,
               {"principal_type": ptype, "reason": "identity_not_verified"})
-        raise ApiError(403, "IDENTITY_UNVERIFIED", "A high-risk action needs params.identity_verified=true: confirm the customer's identity first")
-    return {"risk": "high", "identity_verified": True, "principal_id": principal.get("id"), "principal_type": ptype, "consent": True}
+        raise ApiError(403, "IDENTITY_UNVERIFIED",
+                       "A high-risk action needs a verified identity: pass params.verification_code equal to the customer's account code")
+    return {"risk": "high", "identity_verified": True, "verification_method": "account_code",
+            "principal_id": principal.get("id"), "principal_type": ptype, "consent": True}
 
 
 def invoke_tool(store: Store, tenant_id: str, tool_id: str, params: dict, principal: dict, consent: bool,

@@ -446,10 +446,17 @@ def resolve_get(account_id: str, utterance: str, confirm: bool = False, idempote
 def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
     require_key(c)
     acc = get_account(store, c.tenant_id, body.account_id)
-    principal = {"id": body.principal_id or body.account_id, "type": body.principal_type}
-    if principal["type"] == "customer" and principal["id"] != body.account_id:
-        raise ApiError(403, "PRINCIPAL_MISMATCH", "You can only resolve issues on your own account")
     body.account_id = body.account_id.strip().upper()
+    # Identity is explicit, never assumed. A caller that names no principal is the key-authorized integration
+    # (an "agent", e.g. the eGain action), not the account's owner. Only an explicit principal_id claims to be the
+    # customer, and it must match the account it is acting on. This removes the old default where omitting the
+    # principal silently made the caller the owner of whatever account id they named.
+    if body.principal_id:
+        principal = {"id": body.principal_id.strip().upper(), "type": body.principal_type}
+        if principal["type"] == "customer" and principal["id"] != body.account_id:
+            raise ApiError(403, "PRINCIPAL_MISMATCH", "You can only resolve issues on your own account")
+    else:
+        principal = {"id": f"agent:{c.tenant_id}", "type": "agent"}
     confirm = _as_bool(body.confirm)
     d = c.domain_for(body.domain, body.account_id)
     if d.id != domain_of(acc).id:
@@ -489,8 +496,8 @@ def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
         # Consent receipt: the exact words, time, channel and session the customer agreed with. Kept on the execution
         # so a later dispute ("I never said that") can be answered from the record, next to the trace it authorized.
         ex["consent"] = {"at": now_iso(), "utterance": body.utterance, "channel": body.channel, "principal": principal,
-                         "session_id": (body.context or {}).get("session_id"), "correlation_id": c.correlation_id,
-                         "resumed_proposal": bool(resumed)}
+                         "account_id": body.account_id, "session_id": (body.context or {}).get("session_id"),
+                         "correlation_id": c.correlation_id, "resumed_proposal": bool(resumed)}
         store.put("execution", ex)
         audit(store, c.tenant_id, principal["id"], "CONSENT_RECORDED", "execution", ex["id"], ex["consent"], c.correlation_id)
     summary = {"playbook": {"id": pb["id"], "name": pb["name"], "version": pb["version"], "status": pb["status"]},

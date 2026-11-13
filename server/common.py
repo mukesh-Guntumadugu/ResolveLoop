@@ -9,7 +9,7 @@ from typing import Any, Optional
 
 from fastapi import HTTPException
 
-SENSITIVE_KEY = re.compile(r"(password|passwd|secret|token|api[_-]?key|authorization|ssn|card|email|phone|address)", re.I)
+SENSITIVE_KEY = re.compile(r"(password|passwd|secret|token|api[_-]?key|authorization|ssn|card|email|phone|address|verification[_-]?code|verify[_-]?code|otp|pin)", re.I)
 EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
 
