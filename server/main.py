@@ -61,7 +61,8 @@ def ctx(x_tenant_id: Optional[str] = Header(None), x_correlation_id: Optional[st
 
 def require_key(c: Ctx) -> None:
     if not c.api_key_ok:
-        raise ApiError(401, "UNAUTHORIZED", "Missing or invalid X-API-Key")
+        # Distinguish "no header at all" from "wrong value" so integration mistakes are diagnosable; never echo the value.
+        raise ApiError(401, "UNAUTHORIZED", "Invalid X-API-Key" if c.api_key_present else "Missing X-API-Key header")
 
 
 @app.exception_handler(ApiError)
