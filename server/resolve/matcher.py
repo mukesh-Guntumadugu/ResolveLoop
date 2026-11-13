@@ -34,6 +34,11 @@ CANON = {
 }
 STOP = {"the", "a", "an", "my", "our", "we", "i", "it", "is", "to", "of", "and", "after", "since", "in", "on", "for", "at",
         "button", "problem", "orbit", "get", "out", "will", "with", "again", "still", "please", "help", "hi", "hello", "but", "that", "this", "when"}
+# Concepts that describe a symptom or a time ("stuck", "migration") rather than a subject. They support a match but can
+# never carry one on their own: without a shared specific concept the score is capped into the abstain band, so an
+# export complaint cannot trigger an order fix just because both are "stuck since the migration".
+GENERIC = {"stuck", "migration", "upgrade", "problem", "account", "plan", "line", "new", "error", "app"}
+CODE = re.compile(r"^[a-z]+-\d+$")  # error codes such as rm-100 count as a symptom in their own right
 INJECTION = re.compile(r"(ignore (all|previous|the) (checks|instructions|rules)|run the admin tool|delete_all|drop table|system prompt)", re.I)
 
 
@@ -55,7 +60,13 @@ def score(utterance: str, example: str) -> float:
     # Overlap coefficient (recall-friendly for short customer messages) but a single shared concept is never
     # enough on its own: it is capped into the abstain band so that e.g. "export" alone cannot trigger a fix.
     overlap = inter / min(len(a), len(b))
-    return min(overlap, 0.3) if inter < 2 else overlap
+    # A fix is only proposed for a *problem report*: the message must carry a symptom (a generic symptom word or an
+    # error code) and share a specific concept with the example. "Can viewers export dashboards?" is a question about
+    # exports, not a broken export, and stays in the abstain band however many words it shares.
+    has_symptom = any(c in GENERIC or CODE.match(c) for c in a)
+    if inter < 2 or not ((a & b) - GENERIC) or not has_symptom:
+        return min(overlap, 0.3)
+    return overlap
 
 
 EXECUTABLE = ("APPROVED", "SUPERVISED")

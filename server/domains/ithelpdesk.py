@@ -56,6 +56,9 @@ class ItHelpdeskDomain(Domain):
     prereq_fields = ("active", "migrated", "vpn_group_synced")
     degraded_field = "vpn_service_degraded"
     default_intent = "vpn_access_lost_after_sso2"
+    intent_examples = ("VPN access lost after the SSO 2 sign-on cutover, AC-100",
+                       "cannot connect to the campus VPN since the single sign-on migration",
+                       "VPN login rejected, access group not synced")
     escalation_options = ["email ticket to helpdesk@northgate-u.example", "phone or callback (555) 010-0466"]
     already_ok_message = "The VPN access group is already synced for this account and a test VPN login succeeds. No change was needed."
 

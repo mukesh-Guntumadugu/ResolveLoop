@@ -52,6 +52,9 @@ class TelecomDomain(Domain):
     prereq_fields = ("active", "upgraded", "roaming_enabled")
     degraded_field = "roaming_service_degraded"
     default_intent = "roaming_lost_after_upgrade"
+    intent_examples = ("no data roaming abroad after the Core Network Upgrade 5, RM-100",
+                       "mobile data not working while travelling overseas since the network upgrade",
+                       "roaming lost or disabled on the line after CNU-5")
     escalation_options = ["email ticket to care@nimbus-mobile.example", "phone or callback (555) 010-0177"]
     already_ok_message = "Roaming is already provisioned on this line and the gateway test passes. No change was needed."
 

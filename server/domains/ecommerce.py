@@ -52,6 +52,9 @@ class EcommerceDomain(Domain):
     prereq_fields = ("active", "paid", "migrated", "dispatch_queued")
     degraded_field = "label_service_degraded"
     default_intent = "dispatch_stuck_after_wms4"
+    intent_examples = ("paid order stuck in awaiting dispatch after the WMS 4 warehouse cutover, SH-100",
+                       "no shipping label or tracking generated, parcel never dispatched",
+                       "order not shipped since the warehouse system change")
     escalation_options = ["email ticket to support@harbor-goods.example", "phone or callback (555) 010-0377"]
     already_ok_message = "Dispatch is already queued for this order and a shipping label generates. No change was needed."
 

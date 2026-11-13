@@ -24,8 +24,9 @@ SYNONYMS = {
     "sso": ["login", "logon", "signin", "sign", "authentication"],
 }
 
-# Fields of the account profile that may become hard prerequisites (saas default; each domain declares its own).
-PREREQ_FIELDS = ("active", "role", "migrated", "export_permission")
+# Fields of the account profile that may become hard prerequisites (fallback; each domain declares its own). Fields the
+# entitlement rule already governs (role, plan) are left to that rule, so one observed value is not frozen into policy.
+PREREQ_FIELDS = ("active", "migrated", "export_permission")
 
 
 def extract(case: dict, events: list) -> dict:
@@ -87,7 +88,7 @@ def extract(case: dict, events: list) -> dict:
         "origin": "human_trace",
         "intent": case.get("context", {}).get("category") or domain.default_intent,
         "summary": f"Learned from case {case['id']}: {len(reads)} observation(s), {len(mutations)} mutation(s), verified by {last_verify['tool_id']}.",
-        "match_examples": _match_examples(utterance),
+        "match_examples": _match_examples(utterance, domain.intent_examples),
         "prerequisites": prerequisites,
         "steps": steps,
         "verifier": verifier,
@@ -129,8 +130,11 @@ def _name_from(utterance: str, mutations: list) -> str:
     return f"{tool} when '{short}'"
 
 
-def _match_examples(utterance: str) -> list:
+def _match_examples(utterance: str, intent_examples=()) -> list:
+    """The customer's own words, the domain's canonical phrasings of this problem (from the runbook), and a synonym line.
+    One utterance alone generalises poorly; the runbook phrasings are what a reviewer would add by hand anyway."""
     examples = [utterance] if utterance else []
+    examples += [x for x in intent_examples if x and x not in examples]
     toks = set(tokenize(utterance))
     extra = []
     for key, syns in SYNONYMS.items():

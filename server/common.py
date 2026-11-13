@@ -48,4 +48,4 @@ def envelope(status: str, code: str, message: str, correlation_id: str, data: An
 
 
 def tokenize(text: str) -> list:
-    return [t for t in re.findall(r"[a-z0-9]+", (text or "").lower()) if len(t) > 1]
+    return [t for t in re.findall(r"[a-z]+-\d+|[a-z0-9]+", (text or "").lower()) if len(t) > 1]

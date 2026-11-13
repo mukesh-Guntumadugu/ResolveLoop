@@ -50,9 +50,12 @@ class SaasDomain(Domain):
     profile_tool = "accounts.get_profile"
     entitlement_tool = "accounts.check_entitlement"
     default_feature = "export"
-    prereq_fields = ("active", "role", "migrated", "export_permission")
+    prereq_fields = ("active", "migrated", "export_permission")
     degraded_field = "export_service_degraded"
     default_intent = "export_blocked_after_migration"
+    intent_examples = ("report export stuck or spinning after the Cloud 2 migration, EXP-100",
+                       "cannot download or export reports since the workspace was migrated",
+                       "export button hangs, exports never finish")
     escalation_options = ["email ticket to support@orbit-analytics.example", "phone or callback (555) 010-0199"]
     already_ok_message = "Your account already has export enabled and a test export succeeds. No change was needed."
 
