@@ -1,0 +1,111 @@
+{
+  "domain": "telecom",
+  "company": "Nimbus Mobile",
+  "display_name": "Nimbus Mobile",
+  "documents": [
+    {
+      "id": "telecom-01",
+      "file": "telecom/src/01-using-your-phone-abroad.md",
+      "pdf": "telecom/pdf/01-using-your-phone-abroad.pdf",
+      "title": "Using your phone abroad",
+      "bucket": "public",
+      "source": "Nimbus help center (fictional)",
+      "owner": "Nimbus support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "telecom-02",
+      "file": "telecom/src/02-core-network-upgrade-5.md",
+      "pdf": "telecom/pdf/02-core-network-upgrade-5.pdf",
+      "title": "Core Network Upgrade 5",
+      "bucket": "public",
+      "source": "Nimbus help center (fictional)",
+      "owner": "Nimbus support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "telecom-03",
+      "file": "telecom/src/03-plans-and-add-ons.md",
+      "pdf": "telecom/pdf/03-plans-and-add-ons.pdf",
+      "title": "Plans and add-ons",
+      "bucket": "public",
+      "source": "Nimbus help center (fictional)",
+      "owner": "Nimbus support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "telecom-04",
+      "file": "telecom/src/04-line-status-and-suspensions.md",
+      "pdf": "telecom/pdf/04-line-status-and-suspensions.pdf",
+      "title": "Line status and suspensions",
+      "bucket": "public",
+      "source": "Nimbus help center (fictional)",
+      "owner": "Nimbus support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "telecom-05",
+      "file": "telecom/src/05-getting-help.md",
+      "pdf": "telecom/pdf/05-getting-help.pdf",
+      "title": "Getting help from Nimbus Support",
+      "bucket": "public",
+      "source": "Nimbus help center (fictional)",
+      "owner": "Nimbus support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "telecom-rb-t1",
+      "file": "telecom/internal/RB-T1-reprovision-roaming-after-cnu5.md",
+      "pdf": null,
+      "title": "RB-T1: Re-provision roaming after Core Network Upgrade 5",
+      "bucket": "internal",
+      "source": "Nimbus support runbooks (fictional)",
+      "owner": "Nimbus network specialists",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "specialists"
+    },
+    {
+      "id": "telecom-rb-t2",
+      "file": "telecom/internal/RB-T2-line-suspended-nonpayment.md",
+      "pdf": null,
+      "title": "RB-T2: Line suspended for non-payment",
+      "bucket": "internal",
+      "source": "Nimbus support runbooks (fictional)",
+      "owner": "Nimbus billing specialists",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "specialists"
+    },
+    {
+      "id": "telecom-restricted-01",
+      "file": "telecom/restricted/credits-refunds-and-ownership.md",
+      "pdf": null,
+      "title": "Credits, refunds and ownership changes (restricted)",
+      "bucket": "restricted",
+      "source": "Nimbus billing and account security policy (fictional)",
+      "owner": "Nimbus billing operations",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "humans-only"
+    }
+  ]
+}

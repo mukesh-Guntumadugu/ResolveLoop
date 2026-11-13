@@ -15,6 +15,12 @@ CANON = {
     "not": "stuck", "broken": "stuck", "stays": "stuck", "stay": "stuck", "keeps": "stuck",
     "migrated": "migration", "migrate": "migration", "move": "migration", "moved": "migration", "cloud": "migration",
     "reports": "report", "dashboards": "report", "dashboard": "report",
+    # telecom (Nimbus Mobile): roaming lost after the core network upgrade
+    "roam": "roaming", "roams": "roaming", "abroad": "abroad", "overseas": "abroad", "international": "abroad",
+    "travelling": "abroad", "traveling": "abroad", "travel": "abroad", "trip": "abroad", "holiday": "abroad", "vacation": "abroad",
+    "upgraded": "upgrade", "upgrades": "upgrade", "upgrading": "upgrade",
+    "doesnt": "stuck", "isnt": "stuck", "no": "stuck", "nothing": "stuck", "working": "stuck", "works": "stuck", "work": "stuck",
+    "dead": "stuck", "lost": "stuck", "disappeared": "stuck", "gone": "stuck",
 }
 STOP = {"the", "a", "an", "my", "our", "we", "i", "it", "is", "to", "of", "and", "after", "since", "in", "on", "for", "at",
         "button", "problem", "orbit", "get", "out", "will", "with", "again", "still", "please", "help", "hi", "hello"}
@@ -42,13 +48,18 @@ def score(utterance: str, example: str) -> float:
     return min(overlap, 0.3) if inter < 2 else overlap
 
 
-def match(utterance: str, playbooks: list) -> dict:
-    """Return {decision: match|abstain|none, playbook, score, injection}."""
+EXECUTABLE = ("APPROVED", "SUPERVISED")
+
+
+def match(utterance: str, playbooks: list, domain: Optional[str] = None) -> dict:
+    """Return {decision: match|abstain|none, playbook, score, injection}. Only this domain's executable playbooks count."""
     injection = bool(INJECTION.search(utterance or ""))
     best, best_score = None, 0.0
     for pb in playbooks:
-        if pb.get("status") != "APPROVED":
+        if pb.get("status") not in EXECUTABLE:
             continue  # retired, draft and pending are filtered out, whatever their similarity
+        if domain and pb.get("domain", "saas") != domain:
+            continue
         s = max((score(utterance, ex) for ex in pb.get("match_examples", [])), default=0.0)
         if s > best_score:
             best, best_score = pb, s
