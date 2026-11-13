@@ -85,7 +85,11 @@ Playbook `REVIEW_PENDING → APPROVED → RETIRED` (`REJECTED` terminal); Execut
 - Actions are captured only at the mock tool boundary of one simulated desk. No desktop or screen observation.
 - The eGain integration depth depends on what the hackathon tenant exposes; `egain/OBSERVED.md` records what was actually observed working: three Custom API actions (resolve export issue, check account status, open ticket), three process/escalation workflows that call the API node (export troubleshooter, subscription check, escalation with ticket and callback), branded widget.
 - Tickets and callbacks are stored in ResolveLoop only; no email or telephony is sent (the eGain Send Email and Trigger Call connectors are configured with fictional contacts).
-- Prototype security only: a shared API key, synthetic identities, no SSO. The eGain Custom API action lets the
+- Every confirmed execution carries a **consent receipt** (the customer's exact words, time, channel, session, principal) and
+  `GET /v1/executions/{id}/receipt` returns it with the trace it authorized, the playbook version and the audit entries, so a
+  dispute can be answered from the record. eGain keeps the chat transcript on its side.
+- Prototype security only: a shared API key, synthetic identities, no SSO. Customers are identified by the line or account id
+  they type in pre-chat; a verification step (PIN or one-time code) before any fix is the obvious next step and is not built. The eGain Custom API action lets the
   agent fill `account_id` from the conversation, so a customer can name another synthetic account; ResolveLoop only
   enforces the owner check when `principal_id` is supplied (the process workflow uses the pre-chat `accountId`).
 
