@@ -1,6 +1,6 @@
 {
- "target": "https://srv1619809.hstgr.cloud/resolveloop",
- "at": "2026-11-13T03:28:47Z",
+ "target": "in-process",
+ "at": "2026-11-13T04:14:00Z",
  "cases": 172,
  "overall": {
   "cases": 172,
@@ -53,9 +53,9 @@
    }
   },
   "latency_ms": {
-   "p50": 166.1,
-   "p95": 367.8,
-   "calls": 565
+   "p50": 1.3,
+   "p95": 3.8,
+   "calls": 557
   }
  },
  "by_sector": {
@@ -264,76 +264,7 @@
    }
   }
  },
- "drafts": [
-  {
-   "sector": "saas",
-   "http": 202,
-   "seconds": 22.8,
-   "model": "qwen3:8b",
-   "steps_match": true,
-   "verifier_match": true,
-   "has_entitlement_check": true,
-   "status": "LLM_DRAFT",
-   "llm_error": "",
-   "draft_steps": [
-    "accounts.grant_export_permission"
-   ],
-   "human_steps": [
-    "accounts.grant_export_permission"
-   ]
-  },
-  {
-   "sector": "telecom",
-   "http": 202,
-   "seconds": 23.2,
-   "model": "qwen3:8b",
-   "steps_match": true,
-   "verifier_match": true,
-   "has_entitlement_check": true,
-   "status": "LLM_DRAFT",
-   "llm_error": "",
-   "draft_steps": [
-    "lines.enable_roaming"
-   ],
-   "human_steps": [
-    "lines.enable_roaming"
-   ]
-  },
-  {
-   "sector": "ecommerce",
-   "http": 202,
-   "seconds": 22.2,
-   "model": "qwen3:8b",
-   "steps_match": true,
-   "verifier_match": true,
-   "has_entitlement_check": true,
-   "status": "LLM_DRAFT",
-   "llm_error": "",
-   "draft_steps": [
-    "orders.requeue_dispatch"
-   ],
-   "human_steps": [
-    "orders.requeue_dispatch"
-   ]
-  },
-  {
-   "sector": "ithelpdesk",
-   "http": 202,
-   "seconds": 25.0,
-   "model": "qwen3:8b",
-   "steps_match": true,
-   "verifier_match": true,
-   "has_entitlement_check": true,
-   "status": "LLM_DRAFT",
-   "llm_error": "",
-   "draft_steps": [
-    "access.resync_group"
-   ],
-   "human_steps": [
-    "access.resync_group"
-   ]
-  }
- ],
+ "drafts": [],
  "failures": [
   {
    "sector": "ithelpdesk",
