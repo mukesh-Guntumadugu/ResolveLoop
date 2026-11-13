@@ -42,6 +42,7 @@ class Ctx:
         self.tenant_id = tenant_id
         self.correlation_id = correlation_id
         self.api_key_ok = api_key_ok
+        self.api_key_present = False  # set by ctx(); lets 401s say "missing" vs "invalid" without echoing the value
         self.domain = domain  # X-Domain header, if sent
 
     def domain_for(self, explicit: Optional[str] = None, account_id: Optional[str] = None):
@@ -56,7 +57,9 @@ def ctx(x_tenant_id: Optional[str] = Header(None), x_correlation_id: Optional[st
     ok = (not config.API_KEY) or (x_api_key == config.API_KEY)
     if x_domain:
         get_domain(x_domain)  # 400 UNKNOWN_DOMAIN early
-    return Ctx(tenant, x_correlation_id or new_id("cor"), ok, (x_domain or "").strip().lower() or None)
+    c = Ctx(tenant, x_correlation_id or new_id("cor"), ok, (x_domain or "").strip().lower() or None)
+    c.api_key_present = bool(x_api_key)
+    return c
 
 
 def require_key(c: Ctx) -> None:
