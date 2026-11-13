@@ -456,16 +456,23 @@ def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
         raise ApiError(400, "DOMAIN_MISMATCH", f"{acc['id']} belongs to the {domain_of(acc).id} domain, not {d.id}")
     options = d.escalation_options
 
-    # Reuse the open case for this account+utterance when confirming, else open a new one.
-    existing = store.list("case", c.tenant_id, lambda k: k["customer_id"] == body.account_id and k["utterance"] == body.utterance and k["status"] in ("AGENT_ATTEMPTED", "NEW"))
-    case = existing[-1] if existing else store.put("case", {
-        "id": new_id("case"), "tenant_id": c.tenant_id, "customer_id": body.account_id, "utterance": body.utterance,
-        "context": body.context, "channel": body.channel, "domain": d.id, "status": "NEW", "verification_state": "unverified",
-        "trace_id": new_id("trc"), "created_at": now_iso(), "history": [{"at": now_iso(), "to": "NEW"}],
-    })
-
-    m = match(body.utterance, store.list("playbook", c.tenant_id), d.id)
-    audit(store, c.tenant_id, principal["id"], "RESOLVE_MATCH", "case", case["id"], {"decision": m["decision"], "score": m["score"], "injection": m["injection"], "playbook_id": m["playbook"]["id"] if m["playbook"] else None}, c.correlation_id)
+    # A confirming call resumes the proposal that is waiting for this account's consent, whatever the new wording
+    # ("Yes, go ahead" must not be re-matched as a new problem). Only recent, still-authorized proposals qualify.
+    resumed = _pending_proposal(c.tenant_id, body.account_id) if confirm else None
+    if resumed:
+        case, pb = resumed
+        m = {"decision": "match", "score": 1.0, "injection": False, "playbook": pb}
+        audit(store, c.tenant_id, principal["id"], "RESOLVE_RESUME", "case", case["id"], {"playbook_id": pb["id"], "utterance": body.utterance[:120]}, c.correlation_id)
+    else:
+        # Reuse the open case for this account+utterance when confirming, else open a new one.
+        existing = store.list("case", c.tenant_id, lambda k: k["customer_id"] == body.account_id and k["utterance"] == body.utterance and k["status"] in ("AGENT_ATTEMPTED", "NEW"))
+        case = existing[-1] if existing else store.put("case", {
+            "id": new_id("case"), "tenant_id": c.tenant_id, "customer_id": body.account_id, "utterance": body.utterance,
+            "context": body.context, "channel": body.channel, "domain": d.id, "status": "NEW", "verification_state": "unverified",
+            "trace_id": new_id("trc"), "created_at": now_iso(), "history": [{"at": now_iso(), "to": "NEW"}],
+        })
+        m = match(body.utterance, store.list("playbook", c.tenant_id), d.id)
+        audit(store, c.tenant_id, principal["id"], "RESOLVE_MATCH", "case", case["id"], {"decision": m["decision"], "score": m["score"], "injection": m["injection"], "playbook_id": m["playbook"]["id"] if m["playbook"] else None}, c.correlation_id)
 
     if m["decision"] != "match":
         _set_status(case, "AGENT_ATTEMPTED", f"match={m['decision']} score={m['score']}")
@@ -511,6 +518,25 @@ def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
     _set_status(case, "FAILED_VERIFICATION", ex["result"].get("reason"))
     return ok(c, {"outcome": "escalate", **summary, "verified": False, "reason": ex["result"].get("reason"), "escalation_options": options},
               message="The action ran but the fix could not be verified; a specialist will follow up", code="UNVERIFIED")
+
+
+def _pending_proposal(tenant_id: str, account_id: str, max_age_minutes: int = 30):
+    """Latest execution for this account that is AUTHORIZED and waiting for consent, with its case and playbook."""
+    from datetime import datetime, timedelta, timezone
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)
+    pend = store.list("execution", tenant_id, lambda x: x.get("status") == "AUTHORIZED" and (x.get("result") or {}).get("reason") == "consent required")
+    for px in reversed(pend):
+        try:
+            created = datetime.fromisoformat(px.get("created_at", "").replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if created < cutoff:
+            continue
+        pcase = store.get("case", px["case_id"], tenant_id)
+        pb = store.get("playbook", px["playbook_id"], tenant_id)
+        if pcase and pb and pcase.get("customer_id") == account_id and pcase.get("status") in ("AGENT_ATTEMPTED", "NEW"):
+            return pcase, pb
+    return None
 
 
 def _explain(f: dict) -> str:
