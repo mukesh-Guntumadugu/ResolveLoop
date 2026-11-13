@@ -71,6 +71,13 @@ said what, when"). Self-asserted identity makes them non-repudiable in appearanc
 actor from the authenticated identity, and reject a mismatch between the claimed and the
 authenticated id. Enforce that an approver is not the drafter.
 
+**Proven live (eval tenant, confirm=false, nothing mutated).** Identity is self-asserted:
+`POST /v1/resolve {account_id:"C002", principal_id:"C001", principal_type:"customer"}` ->
+`PRINCIPAL_MISMATCH`, while the same call with no principal proceeds and treats the caller
+as C002's owner. The entire gate is one line, `server/main.py:450`:
+`if principal["type"] == "customer" and principal["id"] != body.account_id`. There is no
+login or verification; naming an account is being that account.
+
 ### F3 — Reads require no key
 **Where.** `require_key` is called only on mutations; `GET /v1/accounts`, `/v1/cases`,
 `/v1/cases/{id}/trace`, `/v1/executions`, `/v1/executions/{id}/receipt`, `/v1/audit`,

@@ -32,21 +32,20 @@ or simply holding the old behaviour until the new one is live, would avoid a fal
 **Evidence.** OBSERVED.md: "An earlier try 3 min after saving showed 'I am unable to assist
 you' (propagation lag, up to 5 min as eGain states)."
 
-## 3. Security-relevant design gap — Custom API action parameters are LLM-filled, with no way to pin one to a trusted pre-chat variable
-**Severity: medium, security-relevant.** A Custom API action auto-extracts its parameters
-(for us `account_id`, `utterance`, `confirm`) and lets the LLM fill them from the
-conversation. That means a customer can name a *different* account in chat and the model
-will pass it, because there is no option to bind a sensitive parameter to a verified
-session/pre-chat variable (e.g. the `accountId` captured in pre-chat) instead of letting
-the model infer it. We confirmed the agent would take a different account id from the
-conversation. We worked around it by routing through a process workflow that uses the
-pre-chat `accountId`, but the Custom API path has no such guard.
-**Ask.** Allow an action parameter to be *bound* to a session variable (pre-chat answer,
-authenticated identity) and marked non-LLM-overridable, so identity-bearing fields cannot
-be talked into a different value.
-**Evidence.** OBSERVED.md: "the Custom API action lets the LLM fill `account_id` from the
-conversation, so a customer can name another account (C003)… The process workflow path
-uses the pre-chat `accountId` instead."
+## 3. Design note (NOT a proven eGain vulnerability) — action parameters are LLM-filled
+**Severity: feedback / hardening request. We did not demonstrate any vulnerability in
+eGain's platform.** A Custom API action auto-extracts its parameters and the LLM fills them
+from the conversation, so the agent will pass whatever `account_id` a user names. This is
+expected behaviour for an LLM action, not a flaw. Whether that can cause harm depends
+entirely on the *backend's* authorization, which is the integrator's responsibility, not
+eGain's. In our own backend we proved (on our own server, eval tenant) that identity is
+self-asserted — the only check is that the claimed principal equals the account named — so
+that is **our** bug and it is tracked in `docs/security-review.md`, not here.
+**Honest status.** We found no data leak, auth bypass or logical flaw in eGain's own
+systems. We did not test eGain's platform for such issues (see the scope note below).
+**Optional product suggestion.** It would help integrators if an action parameter could be
+*bound* to a verified pre-chat/session variable and marked non-LLM-overridable, so
+identity-bearing fields come from a trusted source rather than the conversation.
 
 ## 4. Usability — workflow editor publish checks and node deletion
 **Severity: usability friction.** Several publish-time rules only surface when you try to
@@ -90,6 +89,11 @@ corpus before they train.
   could validate end to end without the console.
 
 ## Scope note
-This feedback comes from normal use of the hackathon tenant while building. We did not run
-any security testing against eGain infrastructure; item 3 is a design observation made
-through ordinary interaction, not the result of probing.
+This feedback comes from normal use of the hackathon tenant while building. We did NOT run
+any security testing against eGain infrastructure, and we have NOT found or proven any
+vulnerability (data leak, auth bypass, injection or logical flaw) in eGain's own systems.
+Items 1 and 2 are functional/UX bugs seen during ordinary use; items 3-6 are feedback.
+eGain publishes a vulnerability reporting form at https://www.egain.com/vulnerability-reporting/
+(response within 2 business days; keep reports private until fixed; do not share customer
+data). There is no safe-harbor or authorization-to-test statement, so any security testing
+of their platform needs explicit written permission from eGain first.
