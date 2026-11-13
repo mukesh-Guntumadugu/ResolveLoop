@@ -7,7 +7,7 @@ Telecom line ids are `N001..N012`; the backend infers the domain from the `N` pr
 
 ## 1. Agent (Point to Content → Train)
 
-- Name: **Nimbus Support Assistant**. Language: English.
+- Name: **Nimbus Support Assistant**. Language: English. Agent id `5eb0186a-5753-4b6f-989a-e2bc98cb9cf9` (created 2026-11-12; content imported as 5 URLs from /kb/telecom/, 20,098 chars; 6 intents generated). Demo link: https://aidev.egain.cloud/y6ip/system/web/apps/aiagent/demo.html?agentId=5eb0186a-5753-4b6f-989a-e2bc98cb9cf9
 - Files (public bucket only, from `knowledge/telecom/pdf/`): 01-using-your-phone-abroad, 02-core-network-upgrade-5,
   03-plans-and-add-ons, 04-line-status-and-suspensions, 05-getting-help.
 - Expected intents after training: roaming and data abroad; Core Network Upgrade 5; plans and add-ons; line status and
@@ -72,3 +72,15 @@ Start → Question(Text → `accountId`) → API GET `/v1/accounts/{{accountId}}
 - "I want to speak to an agent" → ticket number quoted; callback branch → CB number.
 - Free text after Something else → agent picks the line-status action on its own.
 - Record every result in `egain/OBSERVED.md` with a screenshot under `evidence/`.
+
+## Built on 2026-11-12 (console)
+
+| Item | Id / state |
+|------|-----------|
+| Agent Nimbus Support Assistant | 5eb0186a-5753-4b6f-989a-e2bc98cb9cf9; content imported from 5 URLs; 6 intents; teal theme, avatar, disclaimer, greeting, instructions, default contacts; demo link created |
+| Custom APIs | Check Nimbus line status (GET status, tested 200), ResolveLoop fix roaming (POST resolve, credential attached), Open a Nimbus support ticket (POST tickets) |
+| External credential | "ResolveLoop demo API key" (API Key, header X-API-Key); value must equal the 48-character RESOLVELOOP_API_KEY |
+| Nimbus Prechat (pre-chat) | editor 2269e923-461d-428c-bf6c-7ca7f56198c8, published v1, 4 nodes + 9 edges |
+| Nimbus Escalation (escalation) | editor 874c04b8-44a2-439b-b368-702783c33c07, published v1, 9 nodes: select (contactChoice) → ticket API / hours → Phone (callbackPhone) → callback API; errors → contacts statement |
+| Nimbus Roaming Fix (process) | editor 3101b901-c794-4e0e-ac9d-4113fbe2a500, published v1, 10 nodes: symptom select (roamingSymptom) → consent (fixConsent) → API GET /v1/resolve (…confirm=true&channel=egain-workflow; message→resolveMessage, data.outcome→resolveOutcome) → statements; Something else/Invalid → userQuery → Send to AI Agent |
+| Nimbus Line Check | not built (the line-status Custom API covers it) |
