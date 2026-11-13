@@ -16,7 +16,8 @@ per-user export permission. All data, accounts and contact details are synthetic
 Nothing in the loop is specific to SaaS exports. The domain lives in two plug-in points, and both are now data:
 
 - **Domain registry** (`server/domains/`): `saas` = Orbit Reports (accounts C001..C016, export tools) and `telecom` =
-  Nimbus Mobile (lines N001..N012, roaming tools). Each domain declares its allowlisted tools with a **risk tier**
+  Nimbus Mobile (lines N001..N012, roaming tools). Each domain has its own published eGain agent on the same backend:
+  Orbit Support Assistant and Nimbus Support Assistant (`egain/nimbus-blueprints.md`). Each domain declares its allowlisted tools with a **risk tier**
   (low / medium / high), its seed accounts and its entitlement and verification logic. The domain is resolved per request
   from a `domain` field, an `X-Domain` header, or the account-id prefix.
 - **Content buckets** (`knowledge/manifest-<domain>.json`): every document is tagged *public* (the only bucket ever given
