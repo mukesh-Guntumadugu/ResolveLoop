@@ -8,7 +8,7 @@ Form: https://www.egain.com/ai-agent-hackathon-project-submission/ — deadline 
 - Use case (≤150 chars): Turn verified human support fixes into approved AI actions that resolve the next similar customer case.
 - eGain capabilities demonstrated: Knowledge-based answers, Published experience with Orbit look and feel, Pre-chat workflow, Escalation workflow with ticket and callback API nodes, two Process workflows (export troubleshooter, subscription check) with API nodes and a Condition, three Custom API Actions (all observed working on 2026-11-11, see `egain/OBSERVED.md`)
 - Published demo URL: https://aidev.egain.cloud/y6ip/system/web/apps/aiagent/demo.html?agentId=8ba71b10-c3ee-4a3f-b507-8fe3a4d5113a&backgroundUrl=https://cdn.aiagent-dev.egain.cloud/TMDEVEB12725755/screenshots/23a971cf-91ed-4c2b-90dc-2c54439ea014.png
-- One-minute video URL: (YouTube, unlisted)
+- Demo video URL: https://youtu.be/zJ6LUtJvyqE (YouTube, unlisted, 2:51; a 58-second cut is at web/resolveloop-demo.mp4)
 - Pre-existing templates/code/third-party assets: FastAPI, Uvicorn, Pydantic, httpx, pytest, ReportLab, Python-Markdown (open-source libraries). Generative AI coding tools used. All knowledge content original and fictional. Own code is MIT licensed, public at https://github.com/mukesh-Guntumadugu/ResolveLoop
 
 ## Solution description (150 words max; this draft is 150)
@@ -29,9 +29,12 @@ Source code, tests, evidence screenshots and the eGain observation log: https://
 
 ## Evidence checklist (section 05.6 of the design package)
 
-- [ ] Published eGain demo link tested after propagation
-- [ ] Video (60 s) uploaded
+- [x] Published eGain demo link tested after propagation (2026-11-12: both process workflows, escalation ticket RL-1003, self-applied fix on C002)
+- [x] Video uploaded: https://youtu.be/zJ6LUtJvyqE
 - [ ] Screenshot: approved playbook + source trace (Reviewer tab)
 - [ ] Screenshot: account state before/after (Customer tab, state_after)
 - [ ] `evidence/junit.xml` from the last test run (24 tests; paraphrase set 10/10 matched, 0/10 false positives)
-- [ ] `egain/OBSERVED.md` filled in; limitations copied into the README
+- [x] `egain/OBSERVED.md` filled in; limitations copied into the README
+
+
+Devpost project: https://devpost.com/software/1544933 (deadline there is Nov 12, 2026, 8:30 PM PST). Video: https://youtu.be/zJ6LUtJvyqE
