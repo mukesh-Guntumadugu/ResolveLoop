@@ -59,13 +59,16 @@ def ctx(x_tenant_id: Optional[str] = Header(None), x_correlation_id: Optional[st
         get_domain(x_domain)  # 400 UNKNOWN_DOMAIN early
     c = Ctx(tenant, x_correlation_id or new_id("cor"), ok, (x_domain or "").strip().lower() or None)
     c.api_key_present = bool(x_api_key)
+    c.api_key_len = len(x_api_key or "")
     return c
 
 
 def require_key(c: Ctx) -> None:
     if not c.api_key_ok:
         # Distinguish "no header at all" from "wrong value" so integration mistakes are diagnosable; never echo the value.
-        raise ApiError(401, "UNAUTHORIZED", "Invalid X-API-Key" if c.api_key_present else "Missing X-API-Key header")
+        if c.api_key_present:
+            raise ApiError(401, "UNAUTHORIZED", f"Invalid X-API-Key (received {getattr(c, 'api_key_len', 0)} characters, expected {len(config.API_KEY)})")
+        raise ApiError(401, "UNAUTHORIZED", "Missing X-API-Key header")
 
 
 @app.exception_handler(ApiError)
