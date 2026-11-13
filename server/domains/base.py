@@ -45,6 +45,8 @@ class Domain:
     prereq_fields: tuple = ()         # profile fields that may become hard prerequisites
     degraded_field: str = ""          # fault-injection flag that makes the verifier fail
     default_intent: str = ""
+    vocabulary: dict = {}             # sector words -> matcher concepts ("internet" -> "data"); reviewer-editable, see resolve/matcher.py
+    intent_examples: tuple = ()       # canonical phrasings of the problem (from the runbook) that seed a learned playbook's match examples
     escalation_options: list = []
     already_ok_message: str = ""
 

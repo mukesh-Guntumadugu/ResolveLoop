@@ -34,28 +34,44 @@ CANON = {
 }
 STOP = {"the", "a", "an", "my", "our", "we", "i", "it", "is", "to", "of", "and", "after", "since", "in", "on", "for", "at",
         "button", "problem", "orbit", "get", "out", "will", "with", "again", "still", "please", "help", "hi", "hello", "but", "that", "this", "when"}
+# Concepts that describe a symptom or a time ("stuck", "migration") rather than a subject. They support a match but can
+# never carry one on their own: without a shared specific concept the score is capped into the abstain band, so an
+# export complaint cannot trigger an order fix just because both are "stuck since the migration".
+GENERIC = {"stuck", "migration", "upgrade", "problem", "account", "plan", "line", "new", "error", "app"}
+CODE = re.compile(r"^[a-z]+-\d+$")  # error codes such as rm-100 count as a symptom in their own right
 INJECTION = re.compile(r"(ignore (all|previous|the) (checks|instructions|rules)|run the admin tool|delete_all|drop table|system prompt)", re.I)
 
 
-def concepts(text: str) -> set:
+def concepts(text: str, vocabulary: Optional[dict] = None) -> set:
+    """Canonical concepts of a message: the shared table first, then the sector's own vocabulary (a domain plug-in
+    declares words such as "internet" -> "data" or "landed" -> "abroad"; a reviewer extends it when recall misses)."""
     toks = tokenize(text.replace("'", ""))
     out = set()
     for t in toks:
         if t in STOP:
             continue
-        out.add(CANON.get(t, t))
+        if vocabulary and t in vocabulary:
+            out.add(vocabulary[t])
+        else:
+            out.add(CANON.get(t, t))
     return out
 
 
-def score(utterance: str, example: str) -> float:
-    a, b = concepts(utterance), concepts(example)
+def score(utterance: str, example: str, vocabulary: Optional[dict] = None) -> float:
+    a, b = concepts(utterance, vocabulary), concepts(example, vocabulary)
     if not a or not b:
         return 0.0
     inter = len(a & b)
     # Overlap coefficient (recall-friendly for short customer messages) but a single shared concept is never
     # enough on its own: it is capped into the abstain band so that e.g. "export" alone cannot trigger a fix.
     overlap = inter / min(len(a), len(b))
-    return min(overlap, 0.3) if inter < 2 else overlap
+    # A fix is only proposed for a *problem report*: the message must carry a symptom (a generic symptom word or an
+    # error code) and share a specific concept with the example. "Can viewers export dashboards?" is a question about
+    # exports, not a broken export, and stays in the abstain band however many words it shares.
+    has_symptom = any(c in GENERIC or CODE.match(c) for c in a)
+    if inter < 2 or not ((a & b) - GENERIC) or not has_symptom:
+        return min(overlap, 0.3)
+    return overlap
 
 
 EXECUTABLE = ("APPROVED", "SUPERVISED")
@@ -64,13 +80,14 @@ EXECUTABLE = ("APPROVED", "SUPERVISED")
 def match(utterance: str, playbooks: list, domain: Optional[str] = None) -> dict:
     """Return {decision: match|abstain|none, playbook, score, injection}. Only this domain's executable playbooks count."""
     injection = bool(INJECTION.search(utterance or ""))
+    vocab = _vocabulary(domain)
     best, best_score = None, 0.0
     for pb in playbooks:
         if pb.get("status") not in EXECUTABLE:
             continue  # retired, draft and pending are filtered out, whatever their similarity
         if domain and pb.get("domain", "saas") != domain:
             continue
-        s = max((score(utterance, ex) for ex in pb.get("match_examples", [])), default=0.0)
+        s = max((score(utterance, ex, vocab) for ex in pb.get("match_examples", [])), default=0.0)
         if s > best_score:
             best, best_score = pb, s
     if injection:
@@ -80,3 +97,11 @@ def match(utterance: str, playbooks: list, domain: Optional[str] = None) -> dict
     if best and best_score >= ABSTAIN_THRESHOLD:
         return {"decision": "abstain", "playbook": best, "score": round(best_score, 3), "injection": False}
     return {"decision": "none", "playbook": None, "score": round(best_score, 3), "injection": False}
+
+
+def _vocabulary(domain: Optional[str]) -> dict:
+    if not domain:
+        return {}
+    from ..domains.registry import DOMAINS  # local import: domains never import the matcher
+    d = DOMAINS.get(domain)
+    return dict(d.vocabulary) if d else {}

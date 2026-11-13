@@ -88,3 +88,22 @@ All six requirement areas (knowledge answers, published experience, pre-chat, es
 | Process workflow | "Nimbus Roaming Fix" published v1, assigned to intent Roaming Configuration and Troubleshooting: symptom select → consent select → API GET /v1/resolve (confirm=true) with message/data.outcome mappings → statements; RM-200 / RM-300 statements; Something else → userQuery → Send to AI Agent. |
 | Agent resolving by itself (published link) | Pre-chat Roaming → N001 → "No data since I landed in Spain, the app says RM-100": the agent called the line-status action, then the fix action with confirm=false, and asked permission (evidence/egain-nimbus-published-consent-n001.jpg). The first confirmation ("Yes, please apply the fix") was re-matched by the server as a new utterance and fell back to a ticket; fixed the same night: a confirm=true call now resumes the account's pending authorized proposal (test added). Re-run on N002: consent buttons, then "Your roaming has been restored and verified as active" with sources; backend N002 roaming_enabled=true, execution SUCCEEDED (evidence/egain-nimbus-published-consent-n002.jpg, -resolved-n002.jpg). |
 | Instructions hardening | After the agent once quoted a made-up phone number, the additional instructions now list the only contact details it may give and the exact confirm=false → ask → confirm=true action sequence. |
+
+## Four sectors on one loop, and measured capacity (2026-11-12 late)
+
+| Item | Observed |
+|------|----------|
+| Domain registry | `GET /v1/domains` now lists saas (Orbit Analytics), telecom (Nimbus Mobile), ecommerce (Harbor Goods: orders stuck after the WMS 4 cutover, SH-100/200/300) and ithelpdesk (Northgate University IT: VPN access lost after the SSO 2 cutover, AC-100/200/300). Reset seeds 52 accounts. 48 automated tests, including an end-to-end learning loop per sector. Live eGain agents exist for saas and telecom; the other two are backend-only sectors with content packs. |
+| API capacity (VPS, one uvicorn worker, SQLite) | 50 concurrent status reads p95 0.53 s; 40 concurrent `POST /v1/resolve` p95 0.67 s; 25 concurrent ticket creations all 200. One 60 s outlier in the first 25-way run, not reproduced in three later runs. |
+| LLM drafting capacity | GX10 (Qwen3-8B via Ollama, 3 slots, 16k context): 3 parallel drafts in 48 s wall, 31–48 s each, no JSON failures. With 8 slots the per-slot context shrank and drafts slowed to 77 s and failed JSON parsing twice; reverted to 3. VPS CPU fallback: 18 tok/s. nginx read timeout raised to 240 s. |
+| Operational threshold | 25 concurrent agent sessions per backend instance and 3 parallel drafts, both configuration (more uvicorn workers + Postgres; more Ollama slots or vLLM). |
+
+## Scored evaluation (2026-11-13)
+
+| Item | Observed |
+|------|----------|
+| Set | `eval/sectors.py`: 156 intent-labelled cases, 39 per sector (paraphrases, already fixed, ineligible, broken verifier, out of scope, vague, injection, cross-sector). Runner `python -m eval.run_eval`; gate `tests/test_eval_gates.py`. |
+| Live run (VPS, tenant `eval`) | accuracy 97.4%; match precision 100%; recall 95%; eligible fixed and verified 93.8%; wrong actions 0; actions without consent 0; injections blocked 100%; cross-sector leakage 0; verifier caught the broken backend in all four sectors; p95 197 ms over 517 calls. Four misses, all escalations on hard paraphrases. |
+| LLM drafts | Qwen3-8B on the GX10 drafted the same steps and verifier as the human-taught playbook in all four sectors (20 to 32 s each, 3 in parallel). |
+| Defects the first run exposed | saas playbook froze `role == analyst` and refused admins; one-utterance match examples gave telecom 50% recall; a saas complaint on an order matched the ecommerce playbook on "stuck" + "migration" (2 wrong actions). All three fixed; 48 tests pass. |
+| Recall pass (2026-11-13) | Each domain plug-in gained a reviewer-editable `vocabulary` (sector words -> matcher concepts). 16 held-out paraphrases were labelled before the change ran: 15 of 16 matched. Live: 172 cases, accuracy 99.4%, precision 100%, recall 99%, fixed and verified 98.4%, wrong actions 0, drafts 4 of 4 (22 to 25 s). One safe miss ("Duo passes but then the VPN kicks me out"). |

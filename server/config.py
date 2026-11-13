@@ -20,3 +20,5 @@ LLM_API_KEY = os.environ.get("RESOLVELOOP_LLM_API_KEY", "")
 LLM_TIMEOUT = float(os.environ.get("RESOLVELOOP_LLM_TIMEOUT", "120"))
 # Confirmed successful supervised runs an LLM-drafted playbook needs before it is APPROVED.
 SUPERVISED_RUNS = int(os.environ.get("RESOLVELOOP_SUPERVISED_RUNS", "3"))
+# Salt for the synthetic per-account identity code a specialist must present before a high-risk action.
+IDENTITY_SALT = os.environ.get("RESOLVELOOP_IDENTITY_SALT", "resolveloop-demo-identity")
