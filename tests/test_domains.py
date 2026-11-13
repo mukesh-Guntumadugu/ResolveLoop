@@ -146,3 +146,19 @@ def test_confirmation_resumes_pending_proposal_regardless_of_wording(client):
     # With nothing pending, a bare confirmation on another line is still just an unmatched request.
     r = resolve(client, "N008", "Yes, please apply the fix", confirm=True)
     assert r.json()["code"] == "NO_PLAYBOOK"
+
+
+def test_consent_receipt_records_exact_words_time_and_channel(client):
+    cid = human_fix_telecom(client, "N001")
+    learn_and_approve(client, cid)
+    assert resolve(client, "N002", "No data abroad since the upgrade, RM-100", channel="egain").json()["code"] == "CONFIRM_REQUIRED"
+    r = resolve(client, "N002", "Yes, go ahead and apply it", confirm=True, channel="egain", context={"session_id": "chat-123"})
+    ex = r.json()["data"]["execution"]
+    consent = ex["consent"]
+    assert consent["utterance"] == "Yes, go ahead and apply it" and consent["channel"] == "egain"
+    assert consent["session_id"] == "chat-123" and consent["principal"]["id"] == "N002" and consent["at"]
+    rc = client.get(f"/v1/executions/{ex['id']}/receipt", headers=H).json()["data"]
+    assert rc["consent"]["utterance"] == "Yes, go ahead and apply it"
+    assert rc["playbook"]["status"] == "APPROVED" and rc["case"]["customer_id"] == "N002"
+    assert [e["tool_id"] for e in rc["trace"]] == ["lines.enable_roaming", "network.test_roaming"]
+    assert any(a["action"] == "CONSENT_RECORDED" for a in rc["audit"])

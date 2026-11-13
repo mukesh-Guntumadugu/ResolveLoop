@@ -485,6 +485,14 @@ def resolve(body: ResolveIn, c: Ctx = Depends(ctx)):
 
     pb = m["playbook"]
     ex = run_playbook(store, c.tenant_id, case, pb, principal, confirm, body.idempotency_key, c.correlation_id)
+    if confirm and ex.get("status") in ("RUNNING", "SUCCEEDED", "FAILED", "VERIFYING") and not ex.get("consent"):
+        # Consent receipt: the exact words, time, channel and session the customer agreed with. Kept on the execution
+        # so a later dispute ("I never said that") can be answered from the record, next to the trace it authorized.
+        ex["consent"] = {"at": now_iso(), "utterance": body.utterance, "channel": body.channel, "principal": principal,
+                         "session_id": (body.context or {}).get("session_id"), "correlation_id": c.correlation_id,
+                         "resumed_proposal": bool(resumed)}
+        store.put("execution", ex)
+        audit(store, c.tenant_id, principal["id"], "CONSENT_RECORDED", "execution", ex["id"], ex["consent"], c.correlation_id)
     summary = {"playbook": {"id": pb["id"], "name": pb["name"], "version": pb["version"], "status": pb["status"]},
                "match": {"score": m["score"]}, "execution": ex, "case_id": case["id"], "domain": d.id, "supervised": bool(ex.get("supervised"))}
     supervised_note = " This playbook is under supervision: a reviewer must confirm the run." if ex.get("supervised") else ""
@@ -606,6 +614,21 @@ def _execution(c: Ctx, ex_id: str) -> dict:
 @app.get("/v1/executions/{ex_id}")
 def execution(ex_id: str, c: Ctx = Depends(ctx)):
     return ok(c, _execution(c, ex_id))
+
+
+@app.get("/v1/executions/{ex_id}/receipt")
+def execution_receipt(ex_id: str, c: Ctx = Depends(ctx)):
+    """Everything needed to answer "who authorized this, when, and what exactly happened": the execution, its consent
+    receipt, the case it belongs to, the playbook version, and the trace events the execution produced."""
+    ex = store.get("execution", ex_id, c.tenant_id)
+    if not ex:
+        raise ApiError(404, "EXECUTION_NOT_FOUND", "No such execution")
+    case = store.get("case", ex["case_id"], c.tenant_id) or {}
+    pb = store.get("playbook", ex["playbook_id"], c.tenant_id) or {}
+    events = [e for e in trace_for_case(store, c.tenant_id, ex["case_id"]) if e.get("execution_id") == ex_id]
+    return ok(c, {"execution": ex, "consent": ex.get("consent"), "case": {k: case.get(k) for k in ("id", "customer_id", "utterance", "channel", "domain", "status", "created_at", "history")},
+                  "playbook": {k: pb.get(k) for k in ("id", "name", "version", "status", "origin", "approved_at", "reviewer_id")},
+                  "trace": events, "audit": store.list("audit", c.tenant_id, lambda a: a.get("subject_id") == ex_id)})
 
 
 @app.post("/v1/executions/{ex_id}/confirm")
