@@ -773,7 +773,7 @@
   function renderSupervised(exEnv) {
     const box = $('#sup-list');
     if (!exEnv) { setHtml(box, `<li>${NA}</li>`); $('#sup-count').textContent = ''; return; }
-    const items = newestFirst(exEnv.data).filter((x) => x.supervised && !x.confirmed);
+    const items = newestFirst(exEnv.data).filter((x) => x.supervised && !x.confirmed && x.status === 'SUCCEEDED');
     $('#sup-count').textContent = items.length ? `(${items.length})` : '';
     const changed = setHtml(box, items.length ? items.map((x) => `
       <li data-id="${esc(x.id)}">
