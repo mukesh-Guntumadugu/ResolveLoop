@@ -11,6 +11,19 @@ and audited. Ineligible or ambiguous cases are refused and escalated instead of 
 Demo domain: a fictional SaaS, **Orbit Analytics / Orbit Reports**, whose Cloud 2 migration silently drops the
 per-user export permission. All data, accounts and contact details are synthetic (see `docs/domain.md`).
 
+## Any domain, same loop
+
+Nothing in the loop is specific to SaaS exports. The domain lives in two plug-in points: the knowledge content the
+eGain agent is trained on, and the allowlisted tools the desk exposes (`server/mock_business.py`). Swap those and the
+same agent, workflows and ResolveLoop services serve telecom, healthcare, ticketing, utilities or construction support:
+answer from content, escalate what is unknown, record the human fix, approve it, apply and verify it next time, refuse
+what is ineligible.
+
+The business goal is headcount and budget: after a week or two of learning on a real queue, routine cases (where to find
+something, how to apply a setting, a known post-migration fix) resolve without a human, and the team shrinks to the
+people who handle money, ownership, privacy and genuinely new problems. That reduction is the design target, not a
+measured result; the measured results are the 24 tests and the published-link runs in `egain/OBSERVED.md`.
+
 ## Layout
 
 | Path | What |
