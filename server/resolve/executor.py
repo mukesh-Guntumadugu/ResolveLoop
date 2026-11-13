@@ -1,14 +1,18 @@
 """Deterministic executor: authorize → check prerequisites → consent → execute once → verify → audit.
 
-A similarity score never reaches this module. It only runs APPROVED playbooks, re-reads the live account
-state for every prerequisite, and refuses to claim success unless the verifier passes.
+A similarity score never reaches this module. It only runs APPROVED (or SUPERVISED) playbooks, re-reads the live
+account state for every prerequisite, refuses any high-risk step (HUMAN_REQUIRED), and refuses to claim success
+unless the verifier passes. Executions of SUPERVISED playbooks are flagged and only count once a reviewer confirms.
 """
 from typing import Optional
 
 from ..common import ApiError, new_id, now_iso
 from ..db import Store
-from ..mock_business.tools import TOOLS, invoke_tool
+from ..domains import domain_of
+from ..mock_business.tools import TOOLS, get_account, invoke_tool, tool_risk
 from ..trace.events import audit, record_event
+
+EXECUTABLE = ("APPROVED", "SUPERVISED")
 
 
 def _fill(params: dict, ctx: dict) -> dict:
@@ -21,7 +25,8 @@ def _fill(params: dict, ctx: dict) -> dict:
 def check_prerequisites(store: Store, tenant_id: str, pb: dict, account_id: str, principal: dict) -> list:
     """Evaluate every prerequisite against live state. Returns a list of failures (empty = all good)."""
     failures = []
-    profile = invoke_tool(store, tenant_id, "accounts.get_profile", {"account_id": account_id}, principal, False)["output"]
+    domain = domain_of(get_account(store, tenant_id, account_id))
+    profile = invoke_tool(store, tenant_id, domain.profile_tool, {"account_id": account_id}, principal, False)["output"]
     for p in pb.get("prerequisites", []):
         if "field" in p:
             actual = profile.get(p["field"])
@@ -46,7 +51,7 @@ def run(store: Store, tenant_id: str, case: dict, pb: dict, principal: dict, con
     account_id = case["customer_id"]
     if principal.get("type") == "customer" and principal.get("id") != account_id:
         raise ApiError(403, "PRINCIPAL_MISMATCH", "You can only resolve issues on your own account")
-    if pb.get("status") != "APPROVED":
+    if pb.get("status") not in EXECUTABLE:
         audit(store, tenant_id, principal.get("id", "?"), "EXECUTION_BLOCKED", "playbook", pb["id"],
               {"reason": f"status {pb.get('status')}"}, correlation_id)
         raise ApiError(403, "PLAYBOOK_NOT_APPROVED", f"Playbook is {pb.get('status')}; only APPROVED playbooks can run")
@@ -63,15 +68,26 @@ def run(store: Store, tenant_id: str, case: dict, pb: dict, principal: dict, con
         "id": new_id("exe"), "tenant_id": tenant_id, "case_id": case["id"], "playbook_id": pb["id"],
         "playbook_version": pb["version"], "idempotency_key": idempotency_key, "principal_id": principal.get("id"),
         "status": "PROPOSED", "audit_events": [], "result": None, "created_at": now_iso(), "replayed": False,
+        "domain": pb.get("domain", "saas"), "supervised": pb.get("status") == "SUPERVISED", "confirmed": False, "confirmed_by": None,
     }
     trace_id = case.get("trace_id") or new_id("trc")
+    fill_ctx = {"account_id": account_id, "case_id": case["id"]}
+
+    # High-risk tools are human-only: no playbook may run them, whoever asked.
+    high = [s["tool"] for s in pb.get("steps", []) if tool_risk(s.get("tool")) == "high"]
+    if high:
+        ex["status"] = "BLOCKED"
+        ex["result"] = {"reason": "human_required", "code": "HUMAN_REQUIRED", "failures": [], "high_risk_steps": high}
+        store.put("execution", ex)
+        audit(store, tenant_id, principal.get("id", "?"), "HUMAN_REQUIRED_BLOCKED", "execution", ex["id"], {"playbook_id": pb["id"], "steps": high}, correlation_id)
+        return ex
 
     failures = check_prerequisites(store, tenant_id, pb, account_id, principal)
     if failures:
         # Before refusing, check whether the account is already in the verified good state (e.g. the fix was
         # applied earlier). That is reported honestly as "already ok", never as a new fix.
         v = pb["verifier"]
-        vres = invoke_tool(store, tenant_id, v["tool"], _fill(v.get("params", {}), {"account_id": account_id}), principal, False)
+        vres = invoke_tool(store, tenant_id, v["tool"], _fill(v.get("params", {}), fill_ctx), principal, False)
         vout = vres.get("output") or {}
         if vres["success"] and all(vout.get(k) == val for k, val in (v.get("expect") or {}).items()):
             ex["status"] = "ALREADY_OK"
@@ -94,8 +110,8 @@ def run(store: Store, tenant_id: str, case: dict, pb: dict, principal: dict, con
     ex["status"] = "RUNNING"
     store.put("execution", ex)
     for step in pb["steps"]:
-        params = _fill(step.get("params", {}), {"account_id": account_id})
-        res = invoke_tool(store, tenant_id, step["tool"], params, principal, True)
+        params = _fill(step.get("params", {}), fill_ctx)
+        res = invoke_tool(store, tenant_id, step["tool"], params, principal, True, via_playbook=True)
         ev = record_event(store, tenant_id, case["id"], trace_id, "agent", f"playbook:{pb['id']}", step["tool"], params, res, ex["id"])
         ex["audit_events"].append(ev["id"])
         if not res["success"]:
@@ -108,7 +124,7 @@ def run(store: Store, tenant_id: str, case: dict, pb: dict, principal: dict, con
     ex["status"] = "VERIFYING"
     store.put("execution", ex)
     v = pb["verifier"]
-    vparams = _fill(v.get("params", {}), {"account_id": account_id})
+    vparams = _fill(v.get("params", {}), fill_ctx)
     vres = invoke_tool(store, tenant_id, v["tool"], vparams, principal, False)
     vev = record_event(store, tenant_id, case["id"], trace_id, "agent", f"playbook:{pb['id']}", v["tool"], vparams, vres, ex["id"])
     ex["audit_events"].append(vev["id"])

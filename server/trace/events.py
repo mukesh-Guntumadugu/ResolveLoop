@@ -24,6 +24,8 @@ def record_event(store: Store, tenant_id: str, case_id: str, trace_id: str, acto
         "after_state": redact(result.get("after")),
         "success": bool(result.get("success")),
         "error": result.get("error"),
+        "risk": result.get("risk", "low"),
+        "gate": result.get("gate"),  # set only for high-risk calls a specialist ran with verified identity
         "timestamp": now_iso(),
     }
     store.put("event", ev)

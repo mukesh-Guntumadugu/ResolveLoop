@@ -8,22 +8,26 @@ instead of an executable procedure.
 from typing import Optional
 
 from ..common import new_id, now_iso, tokenize
-from ..mock_business.tools import TOOLS
+from ..domains import domain_for_account_id, get_domain
+from ..domains.base import max_risk
+from ..mock_business.tools import TOOLS, tool_risk, verify_passed
 
 # Small, transparent synonym table used to widen match examples. The reviewer can edit the result.
 SYNONYMS = {
     "export": ["download", "csv", "pdf", "extract"],
     "stuck": ["spins", "spinning", "hangs", "hanging", "loading", "frozen", "never finishes", "won't start"],
     "migration": ["migrated", "cloud 2", "move", "moved", "upgrade"],
+    "roaming": ["roam", "abroad", "overseas", "international", "travelling", "traveling", "travel"],
 }
 
-# Fields of the account profile that may become hard prerequisites.
+# Fields of the account profile that may become hard prerequisites (saas default; each domain declares its own).
 PREREQ_FIELDS = ("active", "role", "migrated", "export_permission")
 
 
 def extract(case: dict, events: list) -> dict:
     """Return {"ok": True, "playbook": {...}} or {"ok": False, "gap": "...", "details": [...]}."""
     details = []
+    domain = get_domain(case.get("domain")) if case.get("domain") else (domain_for_account_id(case.get("customer_id")) or get_domain("saas"))
     good = [e for e in events if e.get("actor_type") == "human"]
     if not good:
         return _gap("No human tool actions were recorded for this case.", details)
@@ -48,18 +52,18 @@ def extract(case: dict, events: list) -> dict:
     last_verify = verifies[-1]
     if last_verify["timestamp"] < mutations[-1]["timestamp"]:
         return _gap("The last verification happened before the last mutation; the outcome was not verified.", details)
-    if not _verify_passed(last_verify):
+    if not verify_passed(last_verify["tool_id"], last_verify.get("safe_output")):
         return _gap("The final verification did not report success; the fix is unverified.", details)
 
     # Prerequisites: observed state before the first mutation, restricted to known profile fields.
     before = mutations[0].get("before_state") or {}
     prerequisites = []
-    for field in PREREQ_FIELDS:
+    for field in (domain.prereq_fields or PREREQ_FIELDS):
         if field in before and before[field] is not None:
             prerequisites.append({"field": field, "op": "==", "value": before[field], "source": mutations[0]["id"]})
     for e in reads:
-        if e["tool_id"] == "accounts.check_entitlement" and isinstance(e.get("safe_output"), dict):
-            prerequisites.append({"tool": "accounts.check_entitlement", "params": {"feature": e["safe_inputs"].get("feature", "export")},
+        if e["tool_id"] == domain.entitlement_tool and isinstance(e.get("safe_output"), dict):
+            prerequisites.append({"tool": domain.entitlement_tool, "params": {"feature": e["safe_inputs"].get("feature", domain.default_feature)},
                                   "expect": {"eligible": True}, "source": e["id"]})
 
     steps = []
@@ -75,7 +79,9 @@ def extract(case: dict, events: list) -> dict:
         "tenant_id": case["tenant_id"],
         "version": 1,
         "name": _name_from(utterance, mutations),
-        "intent": case.get("context", {}).get("category") or "export_blocked_after_migration",
+        "domain": domain.id,
+        "origin": "human_trace",
+        "intent": case.get("context", {}).get("category") or domain.default_intent,
         "summary": f"Learned from case {case['id']}: {len(reads)} observation(s), {len(mutations)} mutation(s), verified by {last_verify['tool_id']}.",
         "match_examples": _match_examples(utterance),
         "prerequisites": prerequisites,
@@ -88,7 +94,7 @@ def extract(case: dict, events: list) -> dict:
             "a mutating tool returns success=false",
             "the verifier does not match the expected output",
         ],
-        "risk": "medium" if len(mutations) == 1 else "high",
+        "risk": max_risk(tool_risk(e["tool_id"]) for e in mutations),
         "provenance_event_ids": [e["id"] for e in good],
         "source_case_id": case["id"],
         "status": "REVIEW_PENDING",
@@ -101,21 +107,9 @@ def extract(case: dict, events: list) -> dict:
     return {"ok": True, "playbook": playbook}
 
 
-def _verify_passed(ev: dict) -> bool:
-    out = ev.get("safe_output") or {}
-    if isinstance(out, dict):
-        if "export_ok" in out:
-            return out["export_ok"] is True
-        if "ok" in out:
-            return out["ok"] is True
-    return False
-
-
 def _expected_from(ev: dict) -> dict:
-    out = ev.get("safe_output") or {}
-    if "export_ok" in out:
-        return {"export_ok": True}
-    return {"ok": True}
+    key = (TOOLS.get(ev["tool_id"]) or {}).get("ok_key", "ok")
+    return {key: True}
 
 
 def _templatize(inputs: dict) -> dict:

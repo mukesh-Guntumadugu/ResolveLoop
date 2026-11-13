@@ -1,0 +1,98 @@
+{
+  "domain": "saas",
+  "company": "Orbit Analytics",
+  "display_name": "Orbit Reports",
+  "documents": [
+    {
+      "id": "saas-01",
+      "file": "src/01-exporting-reports.md",
+      "pdf": "pdf/01-exporting-reports.pdf",
+      "title": "Exporting reports from Orbit Reports",
+      "bucket": "public",
+      "source": "Orbit help center (fictional)",
+      "owner": "Orbit support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "saas-02",
+      "file": "src/02-orbit-cloud-2-migration.md",
+      "pdf": "pdf/02-orbit-cloud-2-migration.pdf",
+      "title": "Orbit Cloud 2 migration guide",
+      "bucket": "public",
+      "source": "Orbit help center (fictional)",
+      "owner": "Orbit support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "saas-03",
+      "file": "src/03-roles-and-permissions.md",
+      "pdf": "pdf/03-roles-and-permissions.pdf",
+      "title": "Roles and permissions in Orbit Reports",
+      "bucket": "public",
+      "source": "Orbit help center (fictional)",
+      "owner": "Orbit support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "saas-04",
+      "file": "src/04-plans-and-subscription-status.md",
+      "pdf": "pdf/04-plans-and-subscription-status.pdf",
+      "title": "Plans and subscription status",
+      "bucket": "public",
+      "source": "Orbit help center (fictional)",
+      "owner": "Orbit support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "saas-05",
+      "file": "src/05-getting-help.md",
+      "pdf": "pdf/05-getting-help.pdf",
+      "title": "Getting help from Orbit Support",
+      "bucket": "public",
+      "source": "Orbit help center (fictional)",
+      "owner": "Orbit support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "saas-rb-s1",
+      "file": "saas/internal/RB-S1-restore-export-permission-after-cloud2.md",
+      "pdf": null,
+      "title": "RB-S1: Restore the Export permission after the Orbit Cloud 2 migration",
+      "bucket": "internal",
+      "source": "Orbit support runbooks (fictional)",
+      "owner": "Orbit platform specialists",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "specialists"
+    },
+    {
+      "id": "saas-restricted-01",
+      "file": "saas/restricted/refunds-and-account-ownership.md",
+      "pdf": null,
+      "title": "Refunds and account ownership changes (restricted)",
+      "bucket": "restricted",
+      "source": "Orbit billing and account security policy (fictional)",
+      "owner": "Orbit billing operations",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-10",
+      "version": "1.0",
+      "audience": "humans-only"
+    }
+  ]
+}

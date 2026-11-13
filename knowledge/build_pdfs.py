@@ -2,11 +2,13 @@
 """Convert the Markdown help articles in src/ to PDFs in pdf/.
 
 Usage (from the repository root):
-    .venv/bin/python knowledge/build_pdfs.py
+    .venv/bin/python knowledge/build_pdfs.py                   # Orbit (saas): src/ -> pdf/
+    .venv/bin/python knowledge/build_pdfs.py --domain telecom  # Nimbus: telecom/src/ -> telecom/pdf/
 
 Requires the `markdown` and `reportlab` packages (both in the project venv).
 Each src/NN-name.md becomes pdf/NN-name.pdf. The first H1 of the article is
-used as the document title and as the running page header.
+used as the document title and as the running page header. Only the public
+bucket (src/) is rendered; internal/ and restricted/ stay Markdown-only.
 """
 from __future__ import annotations
 
@@ -36,8 +38,15 @@ from reportlab.platypus import (
 )
 
 HERE = Path(__file__).resolve().parent
-SRC_DIR = HERE / "src"
-PDF_DIR = HERE / "pdf"
+
+# domain -> (source dir, output dir, brand shown in the running header, PDF author)
+DOMAINS = {
+    "saas": (HERE / "src", HERE / "pdf",
+             "Orbit Analytics Help Center", "Orbit Analytics (fictional)"),
+    "telecom": (HERE / "telecom" / "src", HERE / "telecom" / "pdf",
+                "Nimbus Mobile Help Center", "Nimbus Mobile (fictional)"),
+}
+DEFAULT_DOMAIN = "saas"
 
 PAGE_SIZE = letter
 MARGIN = 1 * inch
@@ -245,14 +254,14 @@ def blocks_to_flowables(blocks: list[Block]):
     return story
 
 
-def make_page_decorator(title: str):
+def make_page_decorator(title: str, brand: str):
     def decorate(canvas, doc):
         canvas.saveState()
         width, height = PAGE_SIZE
         canvas.setFont(BODY_FONT, 9)
         canvas.setFillColor(colors.HexColor("#5a6478"))
         canvas.drawString(MARGIN, height - 0.65 * inch, title)
-        canvas.drawRightString(width - MARGIN, height - 0.65 * inch, "Orbit Analytics Help Center")
+        canvas.drawRightString(width - MARGIN, height - 0.65 * inch, brand)
         canvas.setStrokeColor(colors.HexColor("#b8bfcc"))
         canvas.setLineWidth(0.5)
         canvas.line(MARGIN, height - 0.72 * inch, width - MARGIN, height - 0.72 * inch)
@@ -262,7 +271,7 @@ def make_page_decorator(title: str):
     return decorate
 
 
-def convert(md_path: Path, pdf_path: Path) -> None:
+def convert(md_path: Path, pdf_path: Path, brand: str, author: str) -> None:
     html = markdown.markdown(md_path.read_text(encoding="utf-8"), extensions=["tables"])
     parser = ArticleParser()
     parser.feed(html)
@@ -275,23 +284,34 @@ def convert(md_path: Path, pdf_path: Path) -> None:
     doc = SimpleDocTemplate(
         str(pdf_path), pagesize=PAGE_SIZE,
         leftMargin=MARGIN, rightMargin=MARGIN, topMargin=MARGIN, bottomMargin=MARGIN,
-        title=plain_title, author="Orbit Analytics (fictional)", subject="Help center article",
+        title=plain_title, author=author, subject="Help center article",
     )
-    decorate = make_page_decorator(plain_title)
+    decorate = make_page_decorator(plain_title, brand)
     doc.build(blocks_to_flowables(parser.blocks), onFirstPage=decorate, onLaterPages=decorate)
 
 
 def main(argv: list[str]) -> int:
-    PDF_DIR.mkdir(parents=True, exist_ok=True)
-    sources = sorted(SRC_DIR.glob("*.md"))
-    if argv[1:]:
-        sources = [SRC_DIR / Path(a).name for a in argv[1:]]
+    args = argv[1:]
+    domain = DEFAULT_DOMAIN
+    if "--domain" in args:
+        i = args.index("--domain")
+        if i + 1 >= len(args) or args[i + 1] not in DOMAINS:
+            print(f"--domain must be one of: {', '.join(DOMAINS)}", file=sys.stderr)
+            return 2
+        domain = args[i + 1]
+        del args[i:i + 2]
+    src_dir, pdf_dir, brand, author = DOMAINS[domain]
+
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    sources = sorted(src_dir.glob("*.md"))
+    if args:
+        sources = [src_dir / Path(a).name for a in args]
     if not sources:
-        print(f"No Markdown files found in {SRC_DIR}", file=sys.stderr)
+        print(f"No Markdown files found in {src_dir}", file=sys.stderr)
         return 1
     for src in sources:
-        out = PDF_DIR / (src.stem + ".pdf")
-        convert(src, out)
+        out = pdf_dir / (src.stem + ".pdf")
+        convert(src, out, brand, author)
         print(f"{src.name} -> {out.relative_to(HERE)} ({out.stat().st_size:,} bytes)")
     return 0
 

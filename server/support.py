@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 
 from .common import ApiError, new_id, now_iso
 from .db import Store
-from .mock_business.tools import get_account, public_profile
+from .domains import DOMAINS, domain_of
+from .mock_business.tools import get_account
 from .trace.events import audit
 
 
@@ -66,19 +67,9 @@ def _mask(phone: str) -> str:
 
 
 def account_status(store: Store, tenant_id: str, account_id: str) -> dict:
+    """Customer-facing summary. Shape per domain: saas keeps its original fields; telecom reports the line."""
     acc = get_account(store, tenant_id, account_id.strip().upper())
-    p = public_profile(acc)
-    if not p["active"]:
-        summary = "Subscription inactive: the workspace is read-only and exports are disabled (EXP-200)."
-    elif p["role"] == "viewer":
-        summary = "Active subscription. Viewer role: can open dashboards but cannot export."
-    elif p["export_permission"] is True:
-        summary = f"Active {p['plan']} subscription, {p['role']} role, export enabled."
-    elif p["export_permission"] is None:
-        summary = "Active subscription but the export permission state is unknown; a specialist must review it."
-    else:
-        summary = f"Active {p['plan']} subscription, {p['role']} role, but export permission is OFF" + (" after the Orbit Cloud 2 migration." if p["migrated"] else ".")
-    return {"account_id": acc["id"], **p, "summary": summary}
+    return domain_of(acc).status(acc)
 
 
 def metrics(store: Store, tenant_id: str) -> dict:
@@ -100,7 +91,22 @@ def metrics(store: Store, tenant_id: str) -> dict:
     by_status: dict = {}
     for c in cases:
         by_status[c["status"]] = by_status.get(c["status"], 0) + 1
+    by_domain = {}
+    for d in DOMAINS:
+        by_domain[d] = {
+            "cases": sum(1 for c in cases if c.get("domain", "saas") == d),
+            "playbooks": sum(1 for p in pbs if p.get("domain", "saas") == d),
+            "approved_playbooks": sum(1 for p in approved if p.get("domain", "saas") == d),
+            "executions": sum(1 for e in exes if e.get("domain", "saas") == d),
+            "resolved_verified": sum(1 for e in succeeded if e.get("domain", "saas") == d),
+            "refused": sum(1 for e in blocked if e.get("domain", "saas") == d),
+        }
+    audits = store.list("audit", tenant_id)
     return {
+        "by_domain": by_domain,
+        "llm_drafts": sum(1 for p in pbs if p.get("origin") == "llm_draft"),
+        "supervised_playbooks": sum(1 for p in pbs if p["status"] == "SUPERVISED"),
+        "human_required_blocks": sum(1 for a in audits if a["action"] == "HUMAN_REQUIRED_BLOCKED"),
         "cases": len(cases), "cases_by_channel": by_channel, "cases_by_status": by_status,
         "human_traces": len(human_traces), "candidates": len(candidates), "approved_playbooks": len(approved),
         "learning_conversion": {"num": len(approved), "den": max(1, len(human_traces))},
@@ -109,5 +115,5 @@ def metrics(store: Store, tenant_id: str) -> dict:
         "autonomous_resolution": {"num": len(succeeded) + len(already), "den": max(1, len(attempts))},
         "unsafe_executions": 0,
         "tickets": store.count("ticket", tenant_id), "callbacks": store.count("callback", tenant_id),
-        "events": len(events), "audit_entries": store.count("audit", tenant_id),
+        "events": len(events), "audit_entries": len(audits),
     }
