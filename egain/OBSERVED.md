@@ -62,3 +62,15 @@ Not yet exercised end to end on the published link: the troubleshooter process w
 | After `POST /v1/admin/reset?keep_playbooks=true` (C002 export OFF again): pre-chat Something else → C002 → "I can't download the CSV since we migrated to Cloud 2. Can you fix my account?" | Agent chose the **ResolveLoop resolve export issue** action and applied the approved playbook: "export permission has been re-enabled and verified". Backend: C002 export_permission=true, execution exe_74e105c439 SUCCEEDED | evidence/egain-published-link-action-resolved-c002.jpg |
 
 All six requirement areas (knowledge answers, published experience, pre-chat, escalation, process workflows, actions) are now observed on the published link as well as in Test AI Agent.
+
+## Multi-domain round (2026-11-12 night, branch multi-domain, deployed to the VPS)
+
+| Item | Observed |
+|------|----------|
+| Domain registry | `GET /v1/domains`: saas (Orbit Reports, 5 tools, 5 public / 1 internal / 1 restricted docs) and telecom (Nimbus Mobile, 7 tools, 5 / 2 / 1). Reset seeds 28 accounts (16 C-accounts, 12 N-lines). Orbit endpoints unchanged (C002 status identical). |
+| Content buckets | `/v1/content` serves manifest entries per bucket; restricted bodies never returned; internal bodies need the API key; telecom PDFs at `/kb/telecom/*.pdf`; desk Content tab shows the three columns with owner, approver, date, version (evidence/ui3-content-buckets.jpg). |
+| Local LLM | Qwen3-8B via Ollama: GX10 (NVIDIA GB10) reached through a reverse SSH tunnel at 127.0.0.1:11435 (42.8 tok/s), VPS CPU copy at 11434 as fallback (18.1 tok/s). `GET /v1/llm/health` reports both, active = GX10, 378 ms probe. |
+| LLM-drafted playbook | Case for N001 ("No data since I landed in Spain, the app says RM-100 after the network upgrade") → `POST /v1/cases/{id}/draft` → 24 s → `LLM_DRAFT` pb_bdaf4232f7, origin llm_draft, model qwen3:8b, runbooks telecom-rb-t1 + rb-t2, risk low; prerequisites: active, entitlement roaming, upgraded, roaming_enabled false; one step `lines.enable_roaming`; verifier `network.test_roaming`. |
+| Supervised runs → approval | Reviewer approve → `SUPERVISED`. Paraphrase "my phone has no data abroad since the upgrade, RM-100": N002 CONFIRM_REQUIRED → RESOLVED verified (supervised), reviewer confirm 1/3; N001 resolved, 2/3; N008 resolved, confirm → `PROMOTED`, playbook `APPROVED` 3/3. N006 and N007 (not upgraded) → PRECONDITION_FAILED, escalate; N003 (suspended) and N004 (Go, no add-on) → escalate. Desk Reviewer shows the LLM-draft badge and status (evidence/ui3-reviewer-llm-draft-approved.jpg). |
+| High-risk gate | `billing.issue_credit` and `account.change_owner` are risk high: playbooks cannot include them (validator), agents/customers get 403 HUMAN_REQUIRED, specialists need consent + identity_verified (7 tests). |
+| Metrics | `by_domain` counters, `llm_drafts`, `supervised_playbooks`, `human_required_blocks`; dashboard tiles and LLM chip (evidence/ui3-dashboard-llm.jpg). 43 tests pass (evidence/junit.xml). |
