@@ -131,3 +131,18 @@ def test_high_risk_step_never_runs_via_playbook(client):
     r = resolve(client, "N002", "Roaming doesn't work abroad since I upgraded my plan", confirm=True, key="hr2")
     assert r.json()["data"]["outcome"] == "escalate" and r.json()["data"]["reason"] == "human_required" and r.json()["code"] == "HUMAN_REQUIRED"
     assert client.get("/v1/accounts/N002", headers=H).json()["data"]["roaming_enabled"] is False
+
+
+def test_confirmation_resumes_pending_proposal_regardless_of_wording(client):
+    """An LLM agent often confirms with "Yes, go ahead" instead of repeating the problem. The confirming call must
+    resume the proposal that is waiting for consent on that account, not be matched as a new utterance."""
+    cid = human_fix_telecom(client, "N001")
+    learn_and_approve(client, cid)
+    r = resolve(client, "N002", "No data abroad since the network upgrade, RM-100")
+    assert r.json()["code"] == "CONFIRM_REQUIRED"
+    r = resolve(client, "N002", "Yes, please apply the fix", confirm=True)
+    assert r.json()["code"] == "RESOLVED" and r.json()["data"]["verified"] is True, r.text
+    assert client.get("/v1/accounts/N002", headers=H).json()["data"]["roaming_enabled"] is True
+    # With nothing pending, a bare confirmation on another line is still just an unmatched request.
+    r = resolve(client, "N008", "Yes, please apply the fix", confirm=True)
+    assert r.json()["code"] == "NO_PLAYBOOK"
