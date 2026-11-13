@@ -1,11 +1,14 @@
-"""Second domain (Nimbus Mobile telecom) runs the same loop; high-risk tools stay human-only."""
-from conftest import H, human_fix, human_fix_telecom, learn_and_approve, resolve, tool
+"""Further domains (Nimbus Mobile telecom, Harbor Goods ecommerce, Northgate IT helpdesk) run the same loop; high-risk
+tools stay human-only."""
+from conftest import H, human_fix, human_fix_ecommerce, human_fix_ithelpdesk, human_fix_telecom, learn_and_approve, resolve, tool
 
 
-def test_reset_seeds_both_domains_and_status_is_domain_aware(client):
+def test_reset_seeds_all_domains_and_status_is_domain_aware(client):
     accounts = client.get("/v1/accounts", headers=H).json()["data"]
-    assert {a["domain"] for a in accounts} == {"saas", "telecom"} and len(accounts) == 28
+    assert {a["domain"] for a in accounts} == {"saas", "telecom", "ecommerce", "ithelpdesk"} and len(accounts) == 16 + 3 * 12
     assert [a["id"] for a in client.get("/v1/accounts?domain=telecom", headers=H).json()["data"]] == [f"N{i:03d}" for i in range(1, 13)]
+    assert [a["id"] for a in client.get("/v1/accounts?domain=ecommerce", headers=H).json()["data"]] == [f"H{i:03d}" for i in range(1, 13)]
+    assert [a["id"] for a in client.get("/v1/accounts?domain=ithelpdesk", headers=H).json()["data"]] == [f"U{i:03d}" for i in range(1, 13)]
     # C-accounts keep their original status fields and summaries.
     st = client.get("/v1/accounts/C001/status", headers=H).json()
     assert set(st["data"]) == {"account_id", "active", "role", "migrated", "export_permission", "plan", "summary"}
@@ -16,6 +19,18 @@ def test_reset_seeds_both_domains_and_status_is_domain_aware(client):
     assert "RM-300" in client.get("/v1/accounts/N003/status", headers=H).json()["message"]
     d = client.get("/v1/accounts/N001/status", headers=H).json()["data"]
     assert d["active"] is True and d["plan"] == "Plus" and d["roaming_enabled"] is False
+    # H-orders get SH codes, U-users get AC codes.
+    assert "SH-100" in client.get("/v1/accounts/H001/status", headers=H).json()["message"]
+    assert "SH-200" in client.get("/v1/accounts/H004/status", headers=H).json()["message"]
+    assert "SH-300" in client.get("/v1/accounts/H003/status", headers=H).json()["message"]
+    assert "unknown" in client.get("/v1/accounts/H007/status", headers=H).json()["message"]
+    d = client.get("/v1/accounts/H001/status", headers=H).json()["data"]
+    assert set(d) == {"account_id", "active", "paid", "migrated", "dispatch_queued", "tier", "owner_verified", "summary"} and d["dispatch_queued"] is False
+    assert "AC-100" in client.get("/v1/accounts/U001/status", headers=H).json()["message"]
+    assert "AC-200" in client.get("/v1/accounts/U004/status", headers=H).json()["message"]
+    assert "AC-300" in client.get("/v1/accounts/U003/status", headers=H).json()["message"]
+    d = client.get("/v1/accounts/U001/status", headers=H).json()["data"]
+    assert set(d) == {"account_id", "active", "role", "migrated", "vpn_group_synced", "owner_verified", "summary"} and d["role"] == "staff"
 
 
 def test_domains_endpoint_lists_tools_with_risk(client):
@@ -24,6 +39,18 @@ def test_domains_endpoint_lists_tools_with_risk(client):
     risk = {t["id"]: t["risk"] for t in ds["telecom"]["tools"]}
     assert risk["billing.issue_credit"] == "high" and risk["account.change_owner"] == "high" and risk["lines.enable_roaming"] == "low"
     assert all(t["risk"] == "low" for t in ds["saas"]["tools"])
+    # Four domains, each with its own prefix, and the new ones carry two high-risk tools apiece.
+    assert set(ds) == {"saas", "telecom", "ecommerce", "ithelpdesk"}
+    assert ds["ecommerce"]["company"] == "Harbor Goods" and ds["ecommerce"]["account_prefix"] == "H"
+    assert ds["ithelpdesk"]["company"] == "Northgate University IT" and ds["ithelpdesk"]["account_prefix"] == "U"
+    risk = {t["id"]: t["risk"] for t in ds["ecommerce"]["tools"]}
+    assert risk["payments.refund"] == "high" and risk["orders.change_address"] == "high" and risk["orders.requeue_dispatch"] == "low"
+    assert set(risk) == {"orders.get_profile", "orders.check_entitlement", "orders.requeue_dispatch", "shipping.test_label", "payments.refund", "orders.change_address", "cases.escalate"}
+    risk = {t["id"]: t["risk"] for t in ds["ithelpdesk"]["tools"]}
+    assert risk["identity.reset_password"] == "high" and risk["identity.change_owner_email"] == "high" and risk["access.resync_group"] == "low"
+    assert set(risk) == {"users.get_profile", "access.check_entitlement", "access.resync_group", "access.test_vpn_login", "identity.reset_password", "identity.change_owner_email", "cases.escalate"}
+    for d in ds.values():
+        assert set(d["document_counts"]) == {"public", "internal", "restricted"}
     assert set(ds["saas"]["document_counts"]) == {"public", "internal", "restricted"}
     # The merged /v1/tools still lists the original saas tool ids unchanged.
     ids = {t["tool_id"] for t in client.get("/v1/tools", headers=H).json()["data"]}
@@ -162,3 +189,130 @@ def test_consent_receipt_records_exact_words_time_and_channel(client):
     assert rc["playbook"]["status"] == "APPROVED" and rc["case"]["customer_id"] == "N002"
     assert [e["tool_id"] for e in rc["trace"]] == ["lines.enable_roaming", "network.test_roaming"]
     assert any(a["action"] == "CONSENT_RECORDED" for a in rc["audit"])
+
+
+def test_ecommerce_loop_end_to_end(client):
+    # Nothing learned: H001 escalates with Harbor Goods contact options, no mutation.
+    r = resolve(client, "H001", "My parcel hasn't shipped since the WMS 4 cutover")
+    assert r.json()["data"]["outcome"] == "escalate" and "harbor-goods" in r.json()["data"]["escalation_options"][0]
+    assert client.get("/v1/accounts/H001", headers=H).json()["data"]["dispatch_queued"] is False
+
+    cid = human_fix_ecommerce(client, "H001")
+    trace = client.get(f"/v1/cases/{cid}/trace", headers=H).json()["data"]
+    assert [e["tool_id"] for e in trace if e["actor_type"] == "human"] == ["orders.get_profile", "orders.check_entitlement", "orders.requeue_dispatch", "shipping.test_label"]
+    case = client.get(f"/v1/cases/{cid}", headers=H).json()["data"]
+    assert case["status"] == "HUMAN_RESOLVED" and case["verification_state"] == "verified"
+
+    pb = learn_and_approve(client, cid)
+    assert pb["domain"] == "ecommerce" and pb["origin"] == "human_trace" and pb["risk"] == "low"
+    assert [s["tool"] for s in pb["steps"]] == ["orders.requeue_dispatch"] and pb["verifier"]["tool"] == "shipping.test_label" and pb["verifier"]["expect"] == {"label_ok": True}
+    assert {p.get("field") for p in pb["prerequisites"]} >= {"active", "paid", "migrated", "dispatch_queued"}
+    assert any(p.get("tool") == "orders.check_entitlement" for p in pb["prerequisites"])
+
+    # Paraphrase on H002: consent first, then resolved and verified.
+    u = "Paid but the shipping label never generated after WMS 4"
+    r = resolve(client, "H002", u)
+    assert r.json()["data"]["outcome"] == "needs_confirmation" and r.json()["data"]["proposed_actions"] == ["orders.requeue_dispatch"], r.text
+    assert "order H002" in r.json()["data"]["prompt"]
+    r = resolve(client, "H002", u, confirm=True, key="h002")
+    d = r.json()["data"]
+    assert d["outcome"] == "resolved" and d["verified"] is True and r.json()["code"] == "RESOLVED", r.text
+    assert d["domain"] == "ecommerce" and d["supervised"] is False
+    assert client.get("/v1/accounts/H002", headers=H).json()["data"]["dispatch_queued"] is True
+    # A terse paraphrase still matches.
+    assert resolve(client, "H008", "my order is stuck").json()["data"]["outcome"] == "needs_confirmation"
+
+    # Cancelled H003 refused; unpaid H004 refused; not-migrated H006 and unknown-state H007 refused; already-queued H005 reports already resolved.
+    r = resolve(client, "H003", u, confirm=True, key="h003")
+    assert r.json()["data"]["outcome"] == "escalate" and r.json()["data"]["execution"]["status"] == "BLOCKED" and "active" in r.json()["data"]["reason"]
+    assert client.get("/v1/accounts/H003", headers=H).json()["data"]["dispatch_queued"] is False
+    assert resolve(client, "H004", u, confirm=True, key="h004").json()["data"]["execution"]["status"] == "BLOCKED"
+    assert resolve(client, "H006", u, confirm=True, key="h006").json()["data"]["execution"]["status"] == "BLOCKED"
+    assert resolve(client, "H007", u, confirm=True, key="h007").json()["data"]["execution"]["status"] == "BLOCKED"
+    assert resolve(client, "H005", u, confirm=True, key="h005").json()["code"] == "ALREADY_RESOLVED"
+    for oid in ("H004", "H006", "H007"):
+        assert client.get("/v1/accounts/" + oid, headers=H).json()["data"]["dispatch_queued"] is not True
+
+    # The ecommerce playbook never fires for another domain's account.
+    assert resolve(client, "N002", u, confirm=True, key="cross-n").json()["code"] == "NO_PLAYBOOK"
+    assert resolve(client, "U002", u, confirm=True, key="cross-u").json()["code"] == "NO_PLAYBOOK"
+    m = client.get("/v1/metrics", headers=H).json()["data"]
+    assert m["by_domain"]["ecommerce"]["resolved_verified"] == 1 and m["by_domain"]["telecom"]["resolved_verified"] == 0
+
+    # High-risk tools: an agent principal is blocked outright; a specialist with consent and a verified identity may act,
+    # and the delivery address is personal data that never appears in the record.
+    r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "payments.refund", "params": {"account_id": "H001", "amount": 20, "identity_verified": True},
+                                                        "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
+    assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED", r.text
+    r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "orders.change_address", "params": {"account_id": "H001", "new_address": "1 Pier Road", "identity_verified": True},
+                                                        "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
+    assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED"
+    assert tool(client, cid, "payments.refund", {"account_id": "H001", "amount": 20}, consent=True).json()["code"] == "IDENTITY_UNVERIFIED"
+    r = tool(client, cid, "payments.refund", {"account_id": "H001", "amount": 20, "identity_verified": True}, consent=True)
+    assert r.status_code == 200 and r.json()["data"]["result"]["refunded"] is True and r.json()["data"]["event"]["risk"] == "high"
+    r = tool(client, cid, "orders.change_address", {"account_id": "H001", "new_address": "1 Pier Road", "identity_verified": True}, consent=True)
+    assert r.status_code == 200 and r.json()["data"]["result"] == {"changed": True}
+    assert r.json()["data"]["event"]["safe_inputs"]["new_address"] == "[REDACTED]" and "Pier" not in r.text
+
+
+def test_ithelpdesk_loop_end_to_end(client):
+    # Nothing learned: U001 escalates with Northgate contact options, no mutation.
+    r = resolve(client, "U001", "VPN says access denied since my account moved to SSO 2")
+    assert r.json()["data"]["outcome"] == "escalate" and "northgate" in r.json()["data"]["escalation_options"][0]
+    assert client.get("/v1/accounts/U001", headers=H).json()["data"]["vpn_group_synced"] is False
+
+    cid = human_fix_ithelpdesk(client, "U001")
+    trace = client.get(f"/v1/cases/{cid}/trace", headers=H).json()["data"]
+    assert [e["tool_id"] for e in trace if e["actor_type"] == "human"] == ["users.get_profile", "access.check_entitlement", "access.resync_group", "access.test_vpn_login"]
+    case = client.get(f"/v1/cases/{cid}", headers=H).json()["data"]
+    assert case["status"] == "HUMAN_RESOLVED" and case["verification_state"] == "verified"
+
+    pb = learn_and_approve(client, cid)
+    assert pb["domain"] == "ithelpdesk" and pb["origin"] == "human_trace" and pb["risk"] == "low"
+    assert [s["tool"] for s in pb["steps"]] == ["access.resync_group"] and pb["verifier"]["tool"] == "access.test_vpn_login" and pb["verifier"]["expect"] == {"vpn_ok": True}
+    assert {p["field"] for p in pb["prerequisites"] if "field" in p} == {"active", "migrated", "vpn_group_synced"}  # role is checked by entitlement, so staff -> student generalises
+    assert any(p.get("tool") == "access.check_entitlement" for p in pb["prerequisites"])
+
+    # Paraphrase on U002 (a student, where U001 was staff): consent first, then resolved and verified.
+    u = "I can't connect to the VPN after the SSO change"
+    r = resolve(client, "U002", u)
+    assert r.json()["data"]["outcome"] == "needs_confirmation" and r.json()["data"]["proposed_actions"] == ["access.resync_group"], r.text
+    assert "user U002" in r.json()["data"]["prompt"]
+    r = resolve(client, "U002", u, confirm=True, key="u002")
+    d = r.json()["data"]
+    assert d["outcome"] == "resolved" and d["verified"] is True and r.json()["code"] == "RESOLVED", r.text
+    assert d["domain"] == "ithelpdesk" and d["supervised"] is False
+    assert client.get("/v1/accounts/U002", headers=H).json()["data"]["vpn_group_synced"] is True
+
+    # Suspended U003 refused; guest U004 refused; not-migrated U006 and unknown U007 refused; already-synced U005 already resolved.
+    r = resolve(client, "U003", u, confirm=True, key="u003")
+    assert r.json()["data"]["outcome"] == "escalate" and r.json()["data"]["execution"]["status"] == "BLOCKED" and "active" in r.json()["data"]["reason"]
+    assert client.get("/v1/accounts/U003", headers=H).json()["data"]["vpn_group_synced"] is False
+    r = resolve(client, "U004", u, confirm=True, key="u004")
+    assert r.json()["data"]["execution"]["status"] == "BLOCKED" and "role" in r.json()["data"]["reason"]
+    assert resolve(client, "U006", u, confirm=True, key="u006").json()["data"]["execution"]["status"] == "BLOCKED"
+    assert resolve(client, "U007", u, confirm=True, key="u007").json()["data"]["execution"]["status"] == "BLOCKED"
+    assert resolve(client, "U005", u, confirm=True, key="u005").json()["code"] == "ALREADY_RESOLVED"
+    for uid in ("U004", "U006", "U007"):
+        assert client.get("/v1/accounts/" + uid, headers=H).json()["data"]["vpn_group_synced"] is not True
+
+    # Cross-domain: the helpdesk playbook never fires for an order or a line.
+    assert resolve(client, "H002", u, confirm=True, key="cross-h").json()["code"] == "NO_PLAYBOOK"
+    assert resolve(client, "N002", u, confirm=True, key="cross-n2").json()["code"] == "NO_PLAYBOOK"
+    m = client.get("/v1/metrics", headers=H).json()["data"]
+    assert m["by_domain"]["ithelpdesk"]["resolved_verified"] == 1 and m["by_domain"]["ecommerce"]["resolved_verified"] == 0
+
+    # High-risk identity tools: blocked for an agent principal, allowed to a verified specialist, and no secret is ever returned.
+    r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "identity.reset_password", "params": {"account_id": "U001", "identity_verified": True},
+                                                        "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
+    assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED", r.text
+    r = client.post("/v1/tools/invoke", headers=H, json={"case_id": cid, "tool_id": "identity.change_owner_email", "params": {"account_id": "U001", "new_email": "new@northgate-u.example", "identity_verified": True},
+                                                        "actor_id": "egain-agent", "actor_type": "agent", "consent": True})
+    assert r.status_code == 403 and r.json()["code"] == "HUMAN_REQUIRED"
+    assert tool(client, cid, "identity.reset_password", {"account_id": "U001"}, consent=True).json()["code"] == "IDENTITY_UNVERIFIED"
+    r = tool(client, cid, "identity.reset_password", {"account_id": "U001", "identity_verified": True}, consent=True)
+    assert r.status_code == 200 and r.json()["data"]["result"]["reset"] is True and "password" not in str(r.json()["data"]["result"].get("temporary", ""))
+    r = tool(client, cid, "identity.change_owner_email", {"account_id": "U001", "new_email": "new@northgate-u.example", "identity_verified": True}, consent=True)
+    assert r.status_code == 200 and r.json()["data"]["result"] == {"changed": True}
+    assert r.json()["data"]["event"]["safe_inputs"]["new_email"] == "[REDACTED]" and "new@northgate" not in r.text
+    assert client.get("/v1/metrics", headers=H).json()["data"]["human_required_blocks"] >= 2

@@ -1,16 +1,18 @@
 """Registry of domains and the rules that pick one for a request.
 
-Resolution order: an explicit "domain" field or X-Domain header, else the account id prefix (C -> saas, N -> telecom),
-else the default (saas). Tool ids are unique across domains except `cases.escalate`, which every domain shares.
+Resolution order: an explicit "domain" field or X-Domain header, else the account id prefix (C -> saas, N -> telecom,
+H -> ecommerce, U -> ithelpdesk), else the default (saas). Tool ids are unique across domains except `cases.escalate`, which every domain shares.
 """
 from typing import Optional
 
 from ..common import ApiError
 from .base import Domain
+from .ecommerce import EcommerceDomain
+from .ithelpdesk import ItHelpdeskDomain
 from .saas import SaasDomain
 from .telecom import TelecomDomain
 
-DOMAINS: dict = {d.id: d for d in (SaasDomain(), TelecomDomain())}
+DOMAINS: dict = {d.id: d for d in (SaasDomain(), TelecomDomain(), EcommerceDomain(), ItHelpdeskDomain())}
 DEFAULT_DOMAIN = "saas"
 
 

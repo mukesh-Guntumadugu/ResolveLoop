@@ -84,11 +84,11 @@ def ok(c: Ctx, data: Any, message: str = "ok", code: str = "OK", status_code: in
 
 # ---------- schemas ----------
 class CaseIn(BaseModel):
-    customer_id: str = Field(..., description="Synthetic account id, e.g. C001 (saas) or N001 (telecom)")
+    customer_id: str = Field(..., description="Synthetic account id, e.g. C001 (saas), N001 (telecom), H001 (ecommerce) or U001 (ithelpdesk)")
     utterance: str
     context: dict = Field(default_factory=dict)
     channel: str = "desk"
-    domain: Optional[str] = Field(None, description="saas | telecom; inferred from the account id when omitted")
+    domain: Optional[str] = Field(None, description="saas | telecom | ecommerce | ithelpdesk; inferred from the account id when omitted")
 
 
 class ToolCall(BaseModel):
@@ -159,7 +159,7 @@ def reset(c: Ctx = Depends(ctx), keep_playbooks: bool = False):
 @app.post("/v1/admin/fault")
 def fault(body: Fault, c: Ctx = Depends(ctx)):
     """Test hook: make the verifier's backend fail for one account (export service for saas, roaming gateway for
-    telecom) so the verifier catches a false 'fixed'."""
+    telecom, label service for ecommerce, VPN gateway for ithelpdesk) so the verifier catches a false 'fixed'."""
     require_key(c)
     acc = get_account(store, c.tenant_id, body.account_id)
     acc[domain_of(acc).degraded_field] = body.export_service_degraded
@@ -175,7 +175,7 @@ def _account_row(a: dict) -> dict:
 
 @app.get("/v1/accounts")
 def accounts(c: Ctx = Depends(ctx), domain: Optional[str] = None):
-    """All synthetic accounts across domains (C-accounts and N-lines); filter with ?domain=saas|telecom."""
+    """All synthetic accounts across domains (C-accounts, N-lines, H-orders, U-users); filter with ?domain=<id>."""
     if domain:
         get_domain(domain)
     rows = store.list("account", c.tenant_id, (lambda a: domain_of(a).id == domain) if domain else None)

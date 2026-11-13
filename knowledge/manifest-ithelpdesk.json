@@ -1,0 +1,72 @@
+{
+  "domain": "ithelpdesk",
+  "company": "Northgate University IT",
+  "display_name": "Northgate IT Helpdesk",
+  "documents": [
+    {
+      "id": "ithelpdesk-01",
+      "file": "ithelpdesk/src/01-vpn-access.md",
+      "pdf": "ithelpdesk/pdf/01-vpn-access.pdf",
+      "title": "VPN access at Northgate University",
+      "bucket": "public",
+      "source": "Northgate IT knowledge base (fictional)",
+      "owner": "Northgate IT knowledge team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "ithelpdesk-02",
+      "file": "ithelpdesk/src/02-sso-2-cutover.md",
+      "pdf": "ithelpdesk/pdf/02-sso-2-cutover.pdf",
+      "title": "The SSO 2 single-sign-on cutover",
+      "bucket": "public",
+      "source": "Northgate IT knowledge base (fictional)",
+      "owner": "Northgate IT knowledge team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "ithelpdesk-03",
+      "file": "ithelpdesk/src/03-getting-help.md",
+      "pdf": "ithelpdesk/pdf/03-getting-help.pdf",
+      "title": "Getting help from the Northgate IT Helpdesk",
+      "bucket": "public",
+      "source": "Northgate IT knowledge base (fictional)",
+      "owner": "Northgate IT knowledge team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "ithelpdesk-rb-i1",
+      "file": "ithelpdesk/internal/RB-I1-resync-access-group-after-sso2.md",
+      "pdf": null,
+      "title": "RB-I1: Re-sync the VPN access group after the SSO 2 cutover",
+      "bucket": "internal",
+      "source": "Northgate IT runbooks (fictional)",
+      "owner": "Northgate identity and network specialists",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "specialists"
+    },
+    {
+      "id": "ithelpdesk-restricted-01",
+      "file": "ithelpdesk/restricted/password-resets-and-identity.md",
+      "pdf": null,
+      "title": "Password resets and identity changes (restricted)",
+      "bucket": "restricted",
+      "source": "Northgate identity services policy (fictional)",
+      "owner": "Northgate Identity Services",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "humans-only"
+    }
+  ]
+}

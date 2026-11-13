@@ -4,6 +4,8 @@
 Usage (from the repository root):
     .venv/bin/python knowledge/build_pdfs.py                   # Orbit (saas): src/ -> pdf/
     .venv/bin/python knowledge/build_pdfs.py --domain telecom  # Nimbus: telecom/src/ -> telecom/pdf/
+    .venv/bin/python knowledge/build_pdfs.py --domain ecommerce   # Harbor Goods: ecommerce/src/ -> ecommerce/pdf/
+    .venv/bin/python knowledge/build_pdfs.py --domain ithelpdesk  # Northgate IT: ithelpdesk/src/ -> ithelpdesk/pdf/
 
 Requires the `markdown` and `reportlab` packages (both in the project venv).
 Each src/NN-name.md becomes pdf/NN-name.pdf. The first H1 of the article is
@@ -45,6 +47,10 @@ DOMAINS = {
              "Orbit Analytics Help Center", "Orbit Analytics (fictional)"),
     "telecom": (HERE / "telecom" / "src", HERE / "telecom" / "pdf",
                 "Nimbus Mobile Help Center", "Nimbus Mobile (fictional)"),
+    "ecommerce": (HERE / "ecommerce" / "src", HERE / "ecommerce" / "pdf",
+                  "Harbor Goods Help Center", "Harbor Goods (fictional)"),
+    "ithelpdesk": (HERE / "ithelpdesk" / "src", HERE / "ithelpdesk" / "pdf",
+                   "Northgate University IT Knowledge Base", "Northgate University IT (fictional)"),
 }
 DEFAULT_DOMAIN = "saas"
 

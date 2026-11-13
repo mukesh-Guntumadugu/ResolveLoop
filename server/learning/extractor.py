@@ -16,8 +16,12 @@ from ..mock_business.tools import TOOLS, tool_risk, verify_passed
 SYNONYMS = {
     "export": ["download", "csv", "pdf", "extract"],
     "stuck": ["spins", "spinning", "hangs", "hanging", "loading", "frozen", "never finishes", "won't start"],
-    "migration": ["migrated", "cloud 2", "move", "moved", "upgrade"],
+    "migration": ["migrated", "cloud 2", "move", "moved", "upgrade", "cutover", "wms"],
     "roaming": ["roam", "abroad", "overseas", "international", "travelling", "traveling", "travel"],
+    "order": ["orders", "parcel", "package", "shipment", "delivery", "purchase"],
+    "dispatch": ["dispatched", "shipping", "shipped", "ship", "label", "labels", "tracking", "warehouse"],
+    "vpn": ["connect", "connecting", "connection", "tunnel", "remote"],
+    "sso": ["login", "logon", "signin", "sign", "authentication"],
 }
 
 # Fields of the account profile that may become hard prerequisites (saas default; each domain declares its own).
