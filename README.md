@@ -39,6 +39,53 @@ ownership, privacy and genuinely new problems. That reduction is the design targ
 results are the 43 tests and the live runs in `egain/OBSERVED.md` (a Qwen3-8B draft resolved and verified three Nimbus
 lines under supervision and promoted itself, while suspended, un-upgraded and add-on-less lines were refused).
 
+## Architecture, models and capacity
+
+```mermaid
+flowchart LR
+  C[Customer] --> W[eGain widget on the help center]
+  W --> A[eGain AI Agent<br/>intents, pre-chat, escalation,<br/>process workflows, Custom API actions]
+  A -- HTTPS + API key --> N[nginx on the VPS]
+  N --> F[ResolveLoop FastAPI<br/>domain registry, matcher, executor,<br/>review, consent receipts, audit]
+  F --> S[(SQLite, WAL)]
+  F -- OpenAI-compatible --> O1[Ollama on ASUS GX10<br/>Qwen3-8B, GPU, via SSH tunnel]
+  F -. fallback .-> O2[Ollama on the VPS CPU<br/>Qwen3-8B]
+  D[Specialist / reviewer desk] --> F
+```
+
+**Which model does what.** The customer-facing conversation (intent detection, grounded answers, deciding which action to
+call and with which arguments) runs on eGain's hosted agent model; we configure it, we do not host it. ResolveLoop uses no
+model for the critical path: the paraphrase matcher is deterministic concept overlap, prerequisites and verifiers are
+plain tool calls, and every state change is an allowlisted tool. The only model ResolveLoop runs itself is **Qwen3-8B**
+(Apache-2.0, 4-bit GGUF) served by **Ollama** (llama.cpp backend, not vLLM) and used for one offline job: drafting a
+candidate playbook from internal runbooks, which a reviewer must still approve and which only becomes automatic after
+supervised runs. The primary model host is an ASUS Ascent GX10 (NVIDIA GB10, 121 GB unified memory) reached through a
+reverse SSH tunnel; the VPS keeps a CPU copy as fallback and `GET /v1/llm/health` reports which one is active.
+
+**Measured on 2026-11-12** (Hostinger VPS, 8 vCPU, 31 GB, one uvicorn worker, SQLite):
+
+| Load | Result |
+|------|--------|
+| 50 concurrent `GET /v1/accounts/{id}/status` | all 200, p95 0.53 s |
+| 40 concurrent `POST /v1/resolve` (match + prerequisite checks) | all 200, p95 0.67 s, 0.72 s wall |
+| 25 concurrent `POST /v1/tickets` | all 200 |
+| Playbook drafting, GX10, 3 slots, 16k context | 3 parallel drafts in 48 s wall (31–48 s each), no JSON failures |
+| Playbook drafting, VPS CPU fallback | 18 tokens/s, one draft at a time |
+
+**Operational threshold.** We run the backend with a conservative limit of **25 concurrent agent sessions per instance**
+(well inside the measured 40 simultaneous resolve calls) and **3 concurrent drafts** on the GPU box. Both are
+configuration, not architecture: more sessions means more uvicorn workers behind nginx and SQLite replaced by Postgres;
+more drafts means more Ollama slots or a vLLM deployment for batched decoding. Customer chat concurrency itself is handled
+by eGain's platform, not by ResolveLoop. The first 25-way resolve run in the measurement session produced one 60-second
+outlier that did not reproduce in three later runs; the nginx read timeout is set to 240 s so slow drafts never surface
+as gateway errors.
+
+**Plug-in domains.** A sector is a content pack (`knowledge/<domain>/`, three buckets, manifest) plus a tool module
+(`server/domains/<domain>.py`: allowlisted tools with risk tiers, seed accounts, entitlement and verification logic).
+Nothing else changes. Live eGain agents exist for two sectors (SaaS help desk, mobile carrier); the registry and the test
+suite carry more, and the same loop applies to e-commerce and delivery, IT helpdesks, education, billing, networking or
+infrastructure support.
+
 ## Layout
 
 | Path | What |
