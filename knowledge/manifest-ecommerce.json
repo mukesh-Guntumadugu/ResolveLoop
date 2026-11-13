@@ -1,0 +1,72 @@
+{
+  "domain": "ecommerce",
+  "company": "Harbor Goods",
+  "display_name": "Harbor Goods",
+  "documents": [
+    {
+      "id": "ecommerce-01",
+      "file": "ecommerce/src/01-where-is-my-order.md",
+      "pdf": "ecommerce/pdf/01-where-is-my-order.pdf",
+      "title": "Where is my order?",
+      "bucket": "public",
+      "source": "Harbor Goods help center (fictional)",
+      "owner": "Harbor Goods support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "ecommerce-02",
+      "file": "ecommerce/src/02-wms-4-cutover.md",
+      "pdf": "ecommerce/pdf/02-wms-4-cutover.pdf",
+      "title": "The WMS 4 warehouse cutover",
+      "bucket": "public",
+      "source": "Harbor Goods help center (fictional)",
+      "owner": "Harbor Goods support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "ecommerce-03",
+      "file": "ecommerce/src/03-getting-help.md",
+      "pdf": "ecommerce/pdf/03-getting-help.pdf",
+      "title": "Getting help from Harbor Goods Support",
+      "bucket": "public",
+      "source": "Harbor Goods help center (fictional)",
+      "owner": "Harbor Goods support content team",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "customers"
+    },
+    {
+      "id": "ecommerce-rb-e1",
+      "file": "ecommerce/internal/RB-E1-requeue-dispatch-after-wms4.md",
+      "pdf": null,
+      "title": "RB-E1: Re-queue dispatch after the WMS 4 warehouse cutover",
+      "bucket": "internal",
+      "source": "Harbor Goods support runbooks (fictional)",
+      "owner": "Harbor Goods warehouse specialists",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "specialists"
+    },
+    {
+      "id": "ecommerce-restricted-01",
+      "file": "ecommerce/restricted/refunds-and-address-changes.md",
+      "pdf": null,
+      "title": "Refunds and delivery address changes (restricted)",
+      "bucket": "restricted",
+      "source": "Harbor Goods payments and order security policy (fictional)",
+      "owner": "Harbor Goods payments operations",
+      "approved_by": "content-reviewer-1",
+      "approved_at": "2026-11-12",
+      "version": "1.0",
+      "audience": "humans-only"
+    }
+  ]
+}

@@ -71,6 +71,36 @@ def human_fix_telecom(client, line_id="N001", utterance="Roaming doesn't work ab
     return cid
 
 
+def human_fix_ecommerce(client, order_id="H001", utterance="My order is stuck in awaiting dispatch since the warehouse migration"):
+    """Specialist session on a Harbor Goods order: read, check entitlement, re-queue dispatch, verify. Returns case id."""
+    case = client.post("/v1/cases", headers=H, json={"customer_id": order_id, "utterance": utterance}).json()["data"]
+    cid = case["id"]
+    assert case["domain"] == "ecommerce"
+    assert tool(client, cid, "orders.get_profile", {"account_id": order_id}).status_code == 200
+    assert tool(client, cid, "orders.check_entitlement", {"account_id": order_id, "feature": "dispatch"}).status_code == 200
+    r = tool(client, cid, "orders.requeue_dispatch", {"account_id": order_id}, consent=True)
+    assert r.status_code == 200 and r.json()["data"]["success"], r.text
+    r = tool(client, cid, "shipping.test_label", {"account_id": order_id})
+    assert r.json()["data"]["result"]["label_ok"] is True, r.text
+    client.post(f"/v1/cases/{cid}/status/HUMAN_RESOLVED", headers=H)
+    return cid
+
+
+def human_fix_ithelpdesk(client, user_id="U001", utterance="Can't get on the VPN since the SSO migration"):
+    """Specialist session on a Northgate user: read, check entitlement, re-sync the VPN group, verify. Returns case id."""
+    case = client.post("/v1/cases", headers=H, json={"customer_id": user_id, "utterance": utterance}).json()["data"]
+    cid = case["id"]
+    assert case["domain"] == "ithelpdesk"
+    assert tool(client, cid, "users.get_profile", {"account_id": user_id}).status_code == 200
+    assert tool(client, cid, "access.check_entitlement", {"account_id": user_id, "feature": "vpn"}).status_code == 200
+    r = tool(client, cid, "access.resync_group", {"account_id": user_id}, consent=True)
+    assert r.status_code == 200 and r.json()["data"]["success"], r.text
+    r = tool(client, cid, "access.test_vpn_login", {"account_id": user_id})
+    assert r.json()["data"]["result"]["vpn_ok"] is True, r.text
+    client.post(f"/v1/cases/{cid}/status/HUMAN_RESOLVED", headers=H)
+    return cid
+
+
 SAAS_RUNBOOK = """# Restoring export after the Cloud 2 migration (internal)
 
 Applies when an analyst or admin on an active, migrated workspace reports exports spinning (EXP-100).

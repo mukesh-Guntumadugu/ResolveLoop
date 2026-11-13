@@ -36,7 +36,7 @@ Swap the content pack and the tool module and the same agent, workflows and serv
 ticketing, utilities or construction support. The business goal is headcount and budget: after a week or two of
 learning on a real queue, routine cases resolve without a human and the team shrinks to the people who handle money,
 ownership, privacy and genuinely new problems. That reduction is the design target, not a measured result; the measured
-results are the 43 tests and the live runs in `egain/OBSERVED.md` (a Qwen3-8B draft resolved and verified three Nimbus
+results are the 47 tests and the live runs in `egain/OBSERVED.md` (a Qwen3-8B draft resolved and verified three Nimbus
 lines under supervision and promoted itself, while suspended, un-upgraded and add-on-less lines were refused).
 
 ## Architecture, models and capacity
@@ -82,8 +82,10 @@ as gateway errors.
 
 **Plug-in domains.** A sector is a content pack (`knowledge/<domain>/`, three buckets, manifest) plus a tool module
 (`server/domains/<domain>.py`: allowlisted tools with risk tiers, seed accounts, entitlement and verification logic).
-Nothing else changes. Live eGain agents exist for two sectors (SaaS help desk, mobile carrier); the registry and the test
-suite carry more, and the same loop applies to e-commerce and delivery, IT helpdesks, education, billing, networking or
+Nothing else changes. Four sectors are registered and covered by end-to-end tests: `saas` (Orbit Reports, SaaS help desk),
+`telecom` (Nimbus Mobile, mobile carrier), `ecommerce` (Harbor Goods, online retail and delivery: orders stuck after a
+warehouse-system cutover, codes SH-100/200/300) and `ithelpdesk` (Northgate University IT, education: VPN access lost after an
+SSO cutover, codes AC-100/200/300). Live eGain agents exist for the first two; the same loop applies to billing, networking or
 infrastructure support.
 
 ## Layout
@@ -92,7 +94,7 @@ infrastructure support.
 |------|------|
 | `server/` | FastAPI orchestrator: `domains` (registry: saas, telecom, risk tiers), `content` (bucket manifests), `drafting` (LLM client + validator + fallback), `mock_business` (synthetic accounts + allowlisted tools), `trace` (action events, audit), `learning` (deterministic trace → playbook extractor), `review` (approval state machine, versioning), `resolve` (paraphrase matcher, gated executor, verifier) |
 | `web/` | Simulated support desk (dashboard with live metrics, customer simulator, human desk, reviewer, audit) and the Orbit help center page the eGain widget sits on (static, served at `/ui/`) |
-| `tests/` | pytest (43): E2E-01…06, safety/negative cases, paraphrase set, telecom domain loop, content buckets, LLM drafting and supervised promotion |
+| `tests/` | pytest (47): E2E-01…06, safety/negative cases, paraphrase set, telecom domain loop, content buckets, LLM drafting and supervised promotion |
 | `knowledge/` | Fictional help content per domain: `src/` + `pdf/` (Orbit public), `telecom/` (Nimbus public, internal, restricted), `saas/internal|restricted`, and the bucket manifests |
 | `egain/` | Workflow blueprints for the eGain console (pre-chat, escalation, process tools, action) and reviewer instructions |
 | `contracts/openapi.json` | API contract exported from the app |

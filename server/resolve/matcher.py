@@ -21,9 +21,19 @@ CANON = {
     "upgraded": "upgrade", "upgrades": "upgrade", "upgrading": "upgrade",
     "doesnt": "stuck", "isnt": "stuck", "no": "stuck", "nothing": "stuck", "working": "stuck", "works": "stuck", "work": "stuck",
     "dead": "stuck", "lost": "stuck", "disappeared": "stuck", "gone": "stuck",
+    # ecommerce (Harbor Goods): paid orders stuck in "awaiting dispatch" after the WMS 4 warehouse cutover
+    "orders": "order", "parcel": "order", "package": "order", "shipment": "order", "delivery": "order", "purchase": "order",
+    "dispatched": "dispatch", "dispatching": "dispatch", "shipping": "dispatch", "shipped": "dispatch", "ship": "dispatch",
+    "label": "dispatch", "labels": "dispatch", "tracking": "dispatch", "warehouse": "dispatch",
+    "awaiting": "stuck", "waiting": "stuck", "delayed": "stuck", "generated": "stuck",
+    "wms": "migration", "cutover": "migration", "switchover": "migration",
+    # it helpdesk (Northgate University IT): VPN access lost after the SSO 2 sign-on cutover
+    "connect": "vpn", "connecting": "vpn", "connection": "vpn", "tunnel": "vpn", "remote": "vpn",
+    "login": "sso", "logon": "sso", "signin": "sso", "sign": "sso", "authentication": "sso", "auth": "sso",
+    "group": "group", "groups": "group", "resync": "group", "synced": "group", "sync": "group",
 }
 STOP = {"the", "a", "an", "my", "our", "we", "i", "it", "is", "to", "of", "and", "after", "since", "in", "on", "for", "at",
-        "button", "problem", "orbit", "get", "out", "will", "with", "again", "still", "please", "help", "hi", "hello"}
+        "button", "problem", "orbit", "get", "out", "will", "with", "again", "still", "please", "help", "hi", "hello", "but", "that", "this", "when"}
 INJECTION = re.compile(r"(ignore (all|previous|the) (checks|instructions|rules)|run the admin tool|delete_all|drop table|system prompt)", re.I)
 
 

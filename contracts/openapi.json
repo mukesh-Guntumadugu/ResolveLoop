@@ -126,7 +126,7 @@
     "/v1/admin/fault": {
       "post": {
         "summary": "Fault",
-        "description": "Test hook: make the verifier's backend fail for one account (export service for saas, roaming gateway for\ntelecom) so the verifier catches a false 'fixed'.",
+        "description": "Test hook: make the verifier's backend fail for one account (export service for saas, roaming gateway for\ntelecom, label service for ecommerce, VPN gateway for ithelpdesk) so the verifier catches a false 'fixed'.",
         "operationId": "fault_v1_admin_fault_post",
         "parameters": [
           {
@@ -229,7 +229,7 @@
     "/v1/accounts": {
       "get": {
         "summary": "Accounts",
-        "description": "All synthetic accounts across domains (C-accounts and N-lines); filter with ?domain=saas|telecom.",
+        "description": "All synthetic accounts across domains (C-accounts, N-lines, H-orders, U-users); filter with ?domain=<id>.",
         "operationId": "accounts_v1_accounts_get",
         "parameters": [
           {
@@ -3886,6 +3886,108 @@
         }
       }
     },
+    "/v1/executions/{ex_id}/receipt": {
+      "get": {
+        "summary": "Execution Receipt",
+        "description": "Everything needed to answer \"who authorized this, when, and what exactly happened\": the execution, its consent\nreceipt, the case it belongs to, the playbook version, and the trace events the execution produced.",
+        "operationId": "execution_receipt_v1_executions__ex_id__receipt_get",
+        "parameters": [
+          {
+            "name": "ex_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Ex Id"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-correlation-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Correlation-Id"
+            }
+          },
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          },
+          {
+            "name": "x-domain",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Domain"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/executions/{ex_id}/confirm": {
       "post": {
         "summary": "Confirm Execution",
@@ -4274,7 +4376,7 @@
           "customer_id": {
             "type": "string",
             "title": "Customer Id",
-            "description": "Synthetic account id, e.g. C001 (saas) or N001 (telecom)"
+            "description": "Synthetic account id, e.g. C001 (saas), N001 (telecom), H001 (ecommerce) or U001 (ithelpdesk)"
           },
           "utterance": {
             "type": "string",
@@ -4300,7 +4402,7 @@
               }
             ],
             "title": "Domain",
-            "description": "saas | telecom; inferred from the account id when omitted"
+            "description": "saas | telecom | ecommerce | ithelpdesk; inferred from the account id when omitted"
           }
         },
         "type": "object",
