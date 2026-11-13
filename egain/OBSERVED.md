@@ -50,3 +50,15 @@ Not yet exercised end to end on the published link: the troubleshooter process w
 | "I want to speak to an agent" → Email ticket | "Your ticket RL-1002 is open with our specialists…". Backend: GET /v1/tickets/RL-1002 → OPEN, account C012, channel egain-escalation, summary "Escalation from chat: I want to speak to an agent" | evidence/egain-test-escalation-ticket-rl1002.jpg |
 | "I want to speak to an agent" → Phone or callback → "+1 555 010 2233" (escalation v2) | Hours statement, phone question, then straight to the Trigger Call card: the callback POST returned 400 (malformed tenant header, see above), so On Error → Trigger Call behaved as designed. Fixed in v3. | — |
 | Same path with escalation v3, "+15550102233" | "Done. Callback CB-1003 is scheduled for the next available slot…" then the Trigger Call card. Backend: GET /v1/callbacks lists CB-1003, account C001, phone stored masked, SCHEDULED | evidence/egain-test-escalation-callback-cb1003.jpg |
+
+## Published demo link, end to end (2026-11-12, public widget, no console)
+
+| Scenario | Result | Evidence |
+|---------|--------|----------|
+| Pre-chat Billing → C012 → "I need to reactivate my subscription, billing says it lapsed" | Intent routed into **Orbit Subscription Check**: asked which account, API node called ResolveLoop, Condition took the inactive branch (Team plan, EXP-200, reactivate under Settings > Billing) | evidence/egain-published-link-subscription-c012.jpg |
+| "I want to speak to an agent" → Email ticket | Escalation workflow: two options, then "Your ticket RL-1003 is open". Backend: GET /v1/tickets/RL-1003 → OPEN, account C012 | evidence/egain-published-link-ticket-rl1003.jpg |
+| Pre-chat Exports → C002 → "Export is not working" | **Orbit Export Troubleshooter** process workflow: symptom buttons (EXP-100/200/300, spins, other) | evidence/egain-published-link-export-troubleshooter.jpg |
+| Free text (after "Something else"): "can you check my account and fix it?" | Agent chose the **Check Orbit account status** action by itself and reported the live state (C002 already fixed on 11 Nov) | — |
+| After `POST /v1/admin/reset?keep_playbooks=true` (C002 export OFF again): pre-chat Something else → C002 → "I can't download the CSV since we migrated to Cloud 2. Can you fix my account?" | Agent chose the **ResolveLoop resolve export issue** action and applied the approved playbook: "export permission has been re-enabled and verified". Backend: C002 export_permission=true, execution exe_74e105c439 SUCCEEDED | evidence/egain-published-link-action-resolved-c002.jpg |
+
+All six requirement areas (knowledge answers, published experience, pre-chat, escalation, process workflows, actions) are now observed on the published link as well as in Test AI Agent.
