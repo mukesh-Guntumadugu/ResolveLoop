@@ -1057,7 +1057,7 @@
     ]);
     const m = met.data || {};
     renderKpis(m);
-    renderDomainRow(m.per_domain);
+    renderDomainRow(m.by_domain || m.per_domain);
     renderLlmChip(llm);
     setHtml($('#chart-channel'), hbarChart(m.cases_by_channel || {}, { empty: 'No cases yet.', cls: () => 'bar-fill' }));
     setHtml($('#chart-status'), hbarChart(m.cases_by_status || {}, { empty: 'No cases yet.', cls: (k) => 'bar-fill st-' + k }));
